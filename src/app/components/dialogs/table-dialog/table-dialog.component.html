@@ -1,0 +1,52 @@
+<h2 mat-dialog-title>Insert Table</h2>
+
+<mat-dialog-content>
+  <p>Hover over the grid to select the number of rows and columns:</p>
+
+  <div class="table-size-display">
+    {{selectedRows}} × {{selectedCols}} table
+  </div>
+
+  <div class="grid-container">
+    <div
+      class="grid-row"
+      *ngFor="let row of createGrid(); let rowIndex = index">
+      <div
+        class="grid-cell"
+        *ngFor="let cell of row; let colIndex = index"
+        [class.selected]="isSelected(rowIndex, colIndex)"
+        (mouseenter)="onCellHover(rowIndex, colIndex)"
+        (click)="onCellClick()"
+        [attr.data-row]="rowIndex + 1"
+        [attr.data-col]="colIndex + 1">
+      </div>
+    </div>
+  </div>
+
+  <p class="instructions">Or enter dimensions manually:</p>
+  <mat-form-field>
+    <mat-label>Rows</mat-label>
+    <input 
+      matInput 
+      type="number" 
+      [(ngModel)]="selectedRows" 
+      (ngModelChange)="onRowsChange()"
+      min="1" 
+      [max]="maxRows">
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Columns</mat-label>
+    <input 
+      matInput 
+      type="number" 
+      [(ngModel)]="selectedCols" 
+      (ngModelChange)="onColsChange()"
+      min="1" 
+      [max]="maxCols">
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="onSubmit()">Insert Table</button>
+</mat-dialog-actions>

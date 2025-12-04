@@ -1,0 +1,49 @@
+.track-changes-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.pending-badge {
+  background-color: #f44336;
+  color: white;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 4px;
+  min-width: 20px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: pulse 2s infinite;
+}
+
+.badge-text {
+  display: inline-block;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+button.active {
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+button:disabled {
+  opacity: 0.4;
+}
+
+button:not(:disabled):hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+mat-icon {
+  transition: color 0.2s ease;
+}

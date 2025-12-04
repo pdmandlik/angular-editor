@@ -1,0 +1,190 @@
+<h2 mat-dialog-title>Insert Image</h2>
+
+<mat-dialog-content class="dialog-content">
+  <!-- Image Preview -->
+  <div class="image-preview-container">
+    <!-- FIXED: Use safePreviewUrl with proper error handling -->
+    <img 
+      *ngIf="safePreviewUrl && !errorMessage" 
+      [src]="safePreviewUrl" 
+      alt="Preview" 
+      class="image-preview"
+      (error)="errorMessage = 'Failed to load image preview'">
+    
+    <!-- FIXED: Show error state if preview fails -->
+    <div *ngIf="errorMessage && !uploading" class="preview-error">
+      <mat-icon>broken_image</mat-icon>
+      <span>Preview unavailable</span>
+    </div>
+    
+    <div class="image-info">
+      <span class="file-name">{{ imageConfig.file.name }}</span>
+      <span class="file-size">{{ getFileSizeString() }}</span>
+      <span class="dimensions">{{ imageConfig.originalWidth }} × {{ imageConfig.originalHeight }}px</span>
+    </div>
+  </div>
+
+  <!-- Alternative Text -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Alternative Text</mat-label>
+    <input matInput [(ngModel)]="imageConfig.altText" placeholder="Describe the image">
+    <mat-hint>Alt text for accessibility and SEO</mat-hint>
+  </mat-form-field>
+
+  <!-- Dimensions Section -->
+  <div class="section-header">
+    <mat-icon>photo_size_select_large</mat-icon>
+    <h3>Dimensions</h3>
+  </div>
+
+  <div class="dimensions-row">
+    <!-- Width -->
+    <div class="dimension-field">
+      <mat-form-field appearance="outline">
+        <mat-label>Width</mat-label>
+        <input matInput type="number" [(ngModel)]="imageConfig.width" 
+               (ngModelChange)="onWidthChange()"
+               [disabled]="imageConfig.widthUnit === 'auto'">
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="unit-select">
+        <mat-select [(ngModel)]="imageConfig.widthUnit" (selectionChange)="onWidthUnitChange()">
+          <mat-option value="px">px</mat-option>
+          <mat-option value="%">%</mat-option>
+          <mat-option value="auto">auto</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <!-- Lock Ratio Button -->
+    <button mat-icon-button 
+            [color]="imageConfig.lockRatio ? 'primary' : ''"
+            (click)="toggleLockRatio()"
+            matTooltip="Lock aspect ratio"
+            type="button"
+            class="lock-button">
+      <mat-icon>{{ imageConfig.lockRatio ? 'lock' : 'lock_open' }}</mat-icon>
+    </button>
+
+    <!-- Height -->
+    <div class="dimension-field">
+      <mat-form-field appearance="outline">
+        <mat-label>Height</mat-label>
+        <input matInput type="number" [(ngModel)]="imageConfig.height"
+               (ngModelChange)="onHeightChange()"
+               [disabled]="imageConfig.heightUnit === 'auto'">
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="unit-select">
+        <mat-select [(ngModel)]="imageConfig.heightUnit" (selectionChange)="onHeightUnitChange()">
+          <mat-option value="px">px</mat-option>
+          <mat-option value="%">%</mat-option>
+          <mat-option value="auto">auto</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <!-- Reset Button -->
+    <button mat-icon-button 
+            (click)="resetDimensions()"
+            matTooltip="Reset to original size"
+            type="button"
+            class="reset-button">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <!-- Alignment Section -->
+  <div class="section-header">
+    <mat-icon>format_align_center</mat-icon>
+    <h3>Alignment</h3>
+  </div>
+
+  <div class="two-column">
+    <mat-form-field appearance="outline">
+      <mat-label>Horizontal</mat-label>
+      <mat-select [(ngModel)]="imageConfig.alignment">
+        <mat-option value="left">Left</mat-option>
+        <mat-option value="center">Center</mat-option>
+        <mat-option value="right">Right</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Vertical</mat-label>
+      <mat-select [(ngModel)]="imageConfig.verticalAlign">
+        <mat-option value="top">Top</mat-option>
+        <mat-option value="middle">Middle</mat-option>
+        <mat-option value="bottom">Bottom</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <!-- Spacing Section -->
+  <div class="section-header">
+    <mat-icon>space_bar</mat-icon>
+    <h3>Spacing</h3>
+  </div>
+
+  <div class="two-column">
+    <mat-form-field appearance="outline">
+      <mat-label>Horizontal Space (Left & Right)</mat-label>
+      <input matInput type="number" [(ngModel)]="imageConfig.hspace" min="0" max="100">
+      <span matTextSuffix>&nbsp;px</span>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Vertical Space (Top & Bottom)</mat-label>
+      <input matInput type="number" [(ngModel)]="imageConfig.vspace" min="0" max="100">
+      <span matTextSuffix>&nbsp;px</span>
+    </mat-form-field>
+  </div>
+
+  <!-- Border Section -->
+  <div class="section-header">
+    <mat-icon>border_outer</mat-icon>
+    <h3>Border</h3>
+  </div>
+
+  <div class="border-row">
+    <mat-form-field appearance="outline" class="border-width-field">
+      <mat-label>Width</mat-label>
+      <input matInput type="number" [(ngModel)]="imageConfig.border" min="0" max="20">
+      <span matTextSuffix>&nbsp;px</span>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="border-style-field">
+      <mat-label>Style</mat-label>
+      <mat-select [(ngModel)]="imageConfig.borderStyle">
+        <mat-option value="none">None</mat-option>
+        <mat-option value="solid">Solid</mat-option>
+        <mat-option value="dashed">Dashed</mat-option>
+        <mat-option value="dotted">Dotted</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="color-picker-wrapper">
+      <label>Color</label>
+      <input type="color" [(ngModel)]="imageConfig.borderColor" class="color-input">
+    </div>
+  </div>
+
+  <!-- Upload Progress -->
+  <div class="upload-progress" *ngIf="uploading">
+    <mat-progress-bar mode="determinate" [value]="uploadProgress"></mat-progress-bar>
+    <span class="progress-text">Uploading... {{ uploadProgress }}%</span>
+  </div>
+
+  <!-- Error Message -->
+  <div class="error-message" *ngIf="errorMessage && !uploading">
+    <mat-icon>error</mat-icon>
+    <span>{{ errorMessage }}</span>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()" [disabled]="uploading">Cancel</button>
+  <button mat-raised-button color="primary" (click)="onUpload()" [disabled]="uploading">
+    <mat-icon *ngIf="!uploading">cloud_upload</mat-icon>
+    <mat-spinner *ngIf="uploading" diameter="20"></mat-spinner>
+    {{ uploading ? 'Uploading...' : 'Upload & Insert' }}
+  </button>
+</mat-dialog-actions>

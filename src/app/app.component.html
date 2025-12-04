@@ -1,0 +1,45 @@
+<router-outlet>
+  <h1 style="text-align: center; margin: 20px 0;">WYSIWYG Editor Demo</h1>
+
+  <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+    <!-- Editor Component with configurable output mode -->
+    <cg-editor 
+      height="500px" 
+      [outputMode]="outputMode"
+      (contentChange)="onContentChange($event)">
+    </cg-editor>
+
+    <div style="margin-top: 20px; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
+      <!-- Output Mode Toggle -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #ddd;">
+        <h3 style="margin: 0;">Editor Content (HTML Output)</h3>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 14px; color: #666;">Output Mode:</span>
+          <button 
+            (click)="toggleOutputMode()"
+            style="padding: 8px 16px; background-color: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; transition: background-color 0.2s;"
+            onmouseover="this.style.backgroundColor='#1565c0'"
+            onmouseout="this.style.backgroundColor='#1976d2'">
+            {{ getOutputModeLabel() }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Output Display -->
+      <pre style="background-color: #f0f0f0; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 14px; max-height: 400px; overflow-y: auto;">{{ editorContent }}</pre>
+      
+      <!-- Help Text -->
+      <div style="margin-top: 12px; padding: 12px; background-color: #e3f2fd; border-left: 4px solid #1976d2; border-radius: 4px;">
+        <p style="margin: 0; font-size: 13px; color: #1565c0;">
+          <strong>Tip:</strong> 
+          <span *ngIf="outputMode === EditorOutputMode.Clean">
+            Currently showing <strong>clean output</strong> (track changes markup removed). Switch to "With Tracked Changes" to see the markup.
+          </span>
+          <span *ngIf="outputMode === EditorOutputMode.WithTrackedChanges">
+            Currently showing <strong>output with tracked changes (DEFAULT)</strong>. All track changes spans are preserved with their markup. Switch to "Clean" to remove all track changes markup.
+          </span>
+        </p>
+      </div>
+    </div>
+  </div>
+</router-outlet>
