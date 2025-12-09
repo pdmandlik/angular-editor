@@ -9,7 +9,7 @@ import { TrackChangesService } from 'src/app/services/track-changes.service';
 import { TrackChangesState } from 'src/app/entities/editor-config';
 
 @Component({
-  selector: 'app-track-changes-toolbar',
+  selector: 'ed-track-changes-toolbar',
   standalone: true,
   imports: [CommonModule, MatButtonModule, MatIconModule, MatTooltipModule, MatDividerModule],
   templateUrl: './track-changes-toolbar.component.html',

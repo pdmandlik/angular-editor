@@ -11,24 +11,30 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { MatMenuModule } from '@angular/material/menu';
-import { ReactiveFormsModule, FormControl } from '@angular/forms';
-import { DomSanitizer } from '@angular/platform-browser';
-import { Subject, debounceTime } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
-import { ImageUploadService } from 'src/app/services/image-upload.service';
-import { TrackChangesService } from 'src/app/services/track-changes.service';
-import { TableDialogComponent } from '../dialogs/table-dialog/table-dialog.component';
-import { ImageUploadDialogComponent } from '../dialogs/image-upload-dialog/image-upload-dialog.component';
+import { Subject, debounceTime, takeUntil } from 'rxjs';
+
+// Import toolbar components
+import { TextFormattingToolbarComponent } from '../editor-toolbar/text-formatting-toolbar/text-formatting-toolbar.component';
+import { AlignmentToolbarComponent } from '../editor-toolbar/alignment-toolbar/alignment-toolbar.component';
+import { ListToolbarComponent } from '../editor-toolbar/list-toolbar/list-toolbar.component';
+import { HistoryToolbarComponent } from '../editor-toolbar/history-toolbar/history-toolbar.component';
+import { TableToolbarComponent } from '../editor-toolbar/table-toolbar/table-toolbar.component';
+import { ImageToolbarComponent } from '../editor-toolbar/image-toolbar/image-toolbar.component';
+import { LineHeightToolbarComponent } from '../editor-toolbar/line-height-toolbar/line-height-toolbar.component';
 import { TrackChangesToolbarComponent } from '../track-changes/track-changes-toolbar/track-changes-toolbar.component';
+
+// Import directive
 import { TrackChangesTooltipDirective } from 'src/app/directives/track-changes-tooltip.directive';
+
+// Import services
+import { CommandExecutorService } from 'src/app/services/command-executor.service';
+import { SelectionManagerService } from 'src/app/services/selection-manager.service';
+import { ContentSanitizerService } from 'src/app/services/content-sanitizer.service';
+import { TrackChangesService } from 'src/app/services/track-changes.service';
+import { HistoryManagerService } from 'src/app/services/history-manager.service';
+
+// Import entities
 import { TrackChangesState, EditorOutputMode } from 'src/app/entities/editor-config';
 
 @Component({
@@ -37,15 +43,14 @@ import { TrackChangesState, EditorOutputMode } from 'src/app/entities/editor-con
   imports: [
     CommonModule,
     MatToolbarModule,
-    MatIconModule,
-    MatButtonModule,
-    MatButtonToggleModule,
-    MatTooltipModule,
     MatDividerModule,
-    MatSelectModule,
-    MatDialogModule,
-    ReactiveFormsModule,
-    MatMenuModule,
+    TextFormattingToolbarComponent,
+    AlignmentToolbarComponent,
+    ListToolbarComponent,
+    HistoryToolbarComponent,
+    TableToolbarComponent,
+    ImageToolbarComponent,
+    LineHeightToolbarComponent,
     TrackChangesToolbarComponent,
     TrackChangesTooltipDirective
   ],
@@ -53,47 +58,21 @@ import { TrackChangesState, EditorOutputMode } from 'src/app/entities/editor-con
   styleUrls: ['./editor.component.scss']
 })
 export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
-  private readonly OVERLAY_HIDE_DELAY = 200;
-  private readonly CONTENT_DEBOUNCE_TIME = 300;
-  private readonly MAX_TABLE_ROWS = 20;
-  private readonly MAX_TABLE_COLS = 20;
-  private readonly MAX_IMAGE_SIZE_MB = 5;
-  private readonly MAX_IMAGE_DIMENSION = 10000;
-  private readonly BLOCK_ELEMENTS = ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BLOCKQUOTE', 'PRE', 'LI'];
-  
   @ViewChild('editor') editor!: ElementRef;
-  @Input() content = '<h2>Welcome to Custom WYSIWYG Editor</h2><p>This is a fully-custom WYSIWYG editor built with Angular Material and ContentEditable API.</p><p>Try out all the features in the toolbar above!</p>';
+  @ViewChild('textFormattingToolbar') textFormattingToolbar!: TextFormattingToolbarComponent;
+  @ViewChild('lineHeightToolbar') lineHeightToolbar!: LineHeightToolbarComponent;
+  @ViewChild('historyToolbar') historyToolbar!: HistoryToolbarComponent;
+
+  @Input() content = '<h2>Welcome to Custom WYSIWYG Editor</h2><p>Start editing...</p>';
   @Input() height = '400px';
   @Input() placeholder = 'Start typing here...';
   @Input() outputMode: EditorOutputMode = EditorOutputMode.WithTrackedChanges;
-  
+
   @Output() contentChange = new EventEmitter<string>();
 
-  lineHeights: string[] = ['1.0', '1.2', '1.5', '1.8', '2.0', '2.5', '3.0'];
-  lineHeight = new FormControl('1.5');
-
-  boldActive = false;
-  italicActive = false;
-  underlineActive = false;
-  strikeActive = false;
-  subActive = false;
-  superActive = false;
-
-  readonly maxGridRows = 10;
-  readonly maxGridCols = 10;
-  previewRows = 1;
-  previewCols = 1;
-  showGrid = false;
-  
-  gridRows: number[] = [];
-  gridCols: number[] = [];
-
-  showLineHeightGridFlag = false;
   trackChangesVisible = true;
 
-  private savedRange: Range | null = null;
-  private gridTimeout: ReturnType<typeof setTimeout> | undefined;
-  private lineHeightGridTimeout: ReturnType<typeof setTimeout> | undefined;
+  private readonly CONTENT_DEBOUNCE_TIME = 300;
   private destroy$ = new Subject<void>();
   private contentChange$ = new Subject<string>();
   private selectionChangeListener?: () => void;
@@ -107,16 +86,15 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   };
 
   constructor(
-    private dialog: MatDialog,
-    private sanitizer: DomSanitizer,
-    private imageUploadService: ImageUploadService,
-    private trackChangesService: TrackChangesService
-  ) {}
+    private commandExecutor: CommandExecutorService,
+    private selectionManager: SelectionManagerService,
+    private sanitizer: ContentSanitizerService,
+    private trackChangesService: TrackChangesService,
+    private historyManager: HistoryManagerService
+  ) { }
 
   ngOnInit(): void {
-    this.gridRows = Array(this.maxGridRows).fill(0).map((_, i) => i);
-    this.gridCols = Array(this.maxGridCols).fill(0).map((_, i) => i);
-    
+    // Setup debounced content change emission
     this.contentChange$
       .pipe(
         debounceTime(this.CONTENT_DEBOUNCE_TIME),
@@ -125,72 +103,307 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
       .subscribe(content => {
         this.contentChange.emit(content);
       });
-    
-    if (this.content) {
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = this.sanitizeContent(this.content);
-      const initialContent = this.trackChangesService.getContent(tempDiv, this.outputMode);
-      setTimeout(() => {
-        this.contentChange.emit(initialContent);
-      }, 0);
-    }
+
+    // Subscribe to history manager events for track changes integration
+    this.historyManager.afterUndo$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.onAfterUndoRedo());
+
+    this.historyManager.afterRedo$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.onAfterUndoRedo());
+
+    // Subscribe to history state changes for toolbar updates
+    this.historyManager.onChange$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        if (this.historyToolbar) {
+          this.historyToolbar.updateState();
+        }
+      });
   }
 
   ngAfterViewInit(): void {
     if (!this.editor) return;
 
-    this.editor.nativeElement.innerHTML = this.sanitizeContent(this.content);
+    const editorEl = this.editor.nativeElement;
+
+    // Initialize services with editor element
+    this.selectionManager.setEditorElement(editorEl);
+    this.historyManager.setEditorElement(editorEl);
+
+    // CRITICAL: Register track changes reload callback
+    // This is what LITE plugin does - it reloads tracker state after undo/redo
+    this.historyManager.setTrackChangesReloadCallback(() => {
+      if (this.trackChangesService.isTracking()) {
+        this.trackChangesService.reload();
+      }
+    });
+
+    // NEW: Register content change callback for track changes -> history integration
+    // When track changes modifies content (bypassing native input events),
+    // we need to notify the history manager to record the change for undo/redo
+    this.trackChangesService.setContentChangeCallback(() => {
+      if (!this.historyManager.isRestoring()) {
+        this.historyManager.type();
+        this.updateContentFromEditor();
+      }
+    });
+
+    // Set initial content
+    const sanitized = this.sanitizer.sanitizeContent(this.content);
+    editorEl.innerHTML = sanitized;
+
+    // Initialize history manager with content (saves initial snapshot)
+    this.historyManager.initialize();
+
+    // Attach event listeners
+    this.attachEditorListeners();
     this.initializeTrackChanges();
 
-    this.editor.nativeElement.addEventListener('input', () => {
-      this.updateContentFromEditor();
-    });
-
-    this.selectionChangeListener = () => {
-      this.scheduleUIUpdate();
-      this.saveCurrentSelection();
-    };
-    document.addEventListener('selectionchange', this.selectionChangeListener);
-
-    this.editor.nativeElement.addEventListener('click', () => {
-      this.scheduleUIUpdate();
-      this.saveCurrentSelection();
-    });
-
-    this.editor.nativeElement.addEventListener('mouseup', () => {
-      this.saveCurrentSelection();
-    });
-
-    // FIXED: Handle keyboard shortcuts on keydown, not keyup
-    this.editor.nativeElement.addEventListener('keydown', (e: KeyboardEvent) => {
-      this.handleKeyboardShortcuts(e);
-    });
-
-    this.editor.nativeElement.addEventListener('keyup', (e: KeyboardEvent) => {
-      this.saveCurrentSelection();
-    });
+    // Initial toolbar state update
+    setTimeout(() => {
+      this.updateToolbarStates();
+    }, 0);
   }
 
   ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.cancelAnimationFrame();
+    this.removeSelectionListener();
+  }
+
+  /**
+   * Called after undo/redo completes
+   * This mirrors CKEditor's afterUndo/afterRedo events
+   */
+  private onAfterUndoRedo(): void {
+    // Update content output
+    this.updateContentFromEditor();
+    // Update toolbar states
+    this.updateToolbarStates();
+  }
+
+  /**
+   * Attach all editor event listeners
+   */
+  private attachEditorListeners(): void {
+    const editorEl = this.editor.nativeElement;
+
+    // Input event - fires on content changes (when track changes is disabled)
+    editorEl.addEventListener('input', this.onEditorInput.bind(this));
+
+    // Keydown - for shortcuts and special keys
+    editorEl.addEventListener('keydown', this.onEditorKeyDown.bind(this));
+
+    // Selection change listener
+    this.selectionChangeListener = this.onSelectionChange.bind(this);
+    document.addEventListener('selectionchange', this.selectionChangeListener);
+
+    // Focus/blur for state management
+    editorEl.addEventListener('focus', this.onEditorFocus.bind(this));
+    editorEl.addEventListener('blur', this.onEditorBlur.bind(this));
+
+    // Click for toolbar updates
+    editorEl.addEventListener('click', this.onEditorClick.bind(this));
+  }
+
+  /**
+   * Remove selection listener
+   */
+  private removeSelectionListener(): void {
     if (this.selectionChangeListener) {
       document.removeEventListener('selectionchange', this.selectionChangeListener);
     }
-    
-    this.clearTimeout(this.gridTimeout);
-    this.clearTimeout(this.lineHeightGridTimeout);
-    this.cancelAnimationFrame();
-    
-    this.destroy$.next();
-    this.destroy$.complete();
-    this.contentChange$.complete();
   }
 
-  private clearTimeout(timeout: ReturnType<typeof setTimeout> | undefined): void {
-    if (timeout !== undefined) {
-      clearTimeout(timeout);
+  /**
+   * Handle editor input event
+   * Note: This only fires when track changes is DISABLED
+   * When track changes is enabled, TrackChangesService intercepts beforeinput
+   * and calls historyManager.type() via the content change callback
+   */
+  private onEditorInput(): void {
+    // Don't record if we're in the middle of undo/redo restore
+    if (this.historyManager.isRestoring()) {
+      return;
+    }
+
+    // Only notify history manager if track changes is NOT enabled
+    // (when enabled, TrackChangesService handles this via callback)
+    if (!this.trackChangesService.isTracking()) {
+      this.historyManager.type();
+    }
+
+    // Update output content
+    this.updateContentFromEditor();
+  }
+
+  /**
+   * Handle keydown for shortcuts and navigation
+   */
+  private onEditorKeyDown(event: KeyboardEvent): void {
+    // Handle keyboard shortcuts (Ctrl+Z, Ctrl+Y, Ctrl+B, etc.)
+    this.handleKeyboardShortcuts(event);
+
+    // Check for navigation keys (arrows, home, end, etc.)
+    if (this.isNavigationKey(event.key)) {
+      // Navigation stops typing mode
+      this.historyManager.stopTyping();
     }
   }
 
+  /**
+   * Handle keyboard shortcuts
+   */
+  private handleKeyboardShortcuts(event: KeyboardEvent): void {
+    if (!event.ctrlKey && !event.metaKey) return;
+
+    const key = event.key.toLowerCase();
+    const isFormattingShortcut = ['b', 'i', 'u', 'z', 'y'].includes(key);
+
+    if (!isFormattingShortcut) return;
+
+    // CRITICAL: Prevent default browser behavior
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Handle undo/redo
+    if (key === 'z') {
+      if (event.shiftKey) {
+        // Ctrl+Shift+Z = Redo
+        this.historyManager.redo();
+      } else {
+        // Ctrl+Z = Undo
+        this.historyManager.undo();
+      }
+      this.updateToolbarStates();
+      return;
+    }
+
+    if (key === 'y') {
+      // Ctrl+Y = Redo
+      this.historyManager.redo();
+      this.updateToolbarStates();
+      return;
+    }
+
+    // For formatting commands, save snapshot before and after
+    this.historyManager.saveBeforeCommand();
+    this.selectionManager.saveSelection();
+
+    switch (key) {
+      case 'b':
+        this.commandExecutor.executeCommand('bold');
+        break;
+      case 'i':
+        this.commandExecutor.executeCommand('italic');
+        break;
+      case 'u':
+        this.commandExecutor.executeCommand('underline');
+        break;
+    }
+
+    this.historyManager.saveAfterCommand();
+    this.scheduleUIUpdate();
+    this.updateContentFromEditor();
+  }
+
+  /**
+   * Handle selection change
+   */
+  private onSelectionChange(): void {
+    const editor = this.editor?.nativeElement;
+    if (!editor) return;
+
+    // Only process if selection is within editor
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    if (!editor.contains(range.commonAncestorContainer)) return;
+
+    // Update selection in history manager (for selection-only snapshots)
+    this.historyManager.update();
+
+    // Schedule UI update
+    this.scheduleUIUpdate();
+  }
+
+  /**
+   * Handle editor focus
+   */
+  private onEditorFocus(): void {
+    this.historyManager.setEnabled(true);
+    this.scheduleUIUpdate();
+  }
+
+  /**
+   * Handle editor blur
+   */
+  private onEditorBlur(): void {
+    // Stop typing and save final state
+    this.historyManager.stopTyping();
+  }
+
+  /**
+   * Handle editor click
+   */
+  private onEditorClick(): void {
+    // Clicks stop typing mode (navigation)
+    this.historyManager.stopTyping();
+    this.scheduleUIUpdate();
+  }
+
+  /**
+   * Check if key is a navigation key
+   */
+  private isNavigationKey(key: string): boolean {
+    const navigationKeys = [
+      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+      'Home', 'End', 'PageUp', 'PageDown'
+    ];
+    return navigationKeys.includes(key);
+  }
+
+  /**
+   * Schedule UI update using requestAnimationFrame
+   */
+  private scheduleUIUpdate(): void {
+    if (this.pendingUIUpdate) return;
+
+    this.pendingUIUpdate = true;
+    this.rafId = requestAnimationFrame(() => {
+      this.updateToolbarStates();
+      this.pendingUIUpdate = false;
+      this.rafId = undefined;
+    });
+  }
+
+  /**
+   * Update all toolbar component states
+   */
+  private updateToolbarStates(): void {
+    const editor = this.editor?.nativeElement;
+    if (!editor) return;
+
+    if (this.textFormattingToolbar) {
+      this.textFormattingToolbar.updateState();
+    }
+
+    if (this.lineHeightToolbar) {
+      this.lineHeightToolbar.updateState();
+    }
+
+    if (this.historyToolbar) {
+      this.historyToolbar.updateState();
+    }
+  }
+
+  /**
+   * Cancel pending animation frame
+   */
   private cancelAnimationFrame(): void {
     if (this.rafId !== undefined) {
       cancelAnimationFrame(this.rafId);
@@ -199,779 +412,58 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  private saveCurrentSelection(): void {
-    const selection = window.getSelection();
-    if (selection?.rangeCount && this.editor) {
-      const range = selection.getRangeAt(0);
-      if (this.editor.nativeElement.contains(range.commonAncestorContainer)) {
-        this.savedRange = range.cloneRange();
-      }
-    }
-  }
+  /**
+   * Called when any toolbar command is executed
+   */
+  onCommandExecuted(): void {
+    // Save snapshot before and after commands
+    this.historyManager.saveBeforeCommand();
 
-  private restoreSelection(range: Range | null = this.savedRange): void {
-    if (!range) return;
-    
-    try {
-      if (!this.editor?.nativeElement.contains(range.commonAncestorContainer)) {
-        this.savedRange = null;
-        return;
-      }
-
-      if (!document.contains(range.startContainer) || !document.contains(range.endContainer)) {
-        this.savedRange = null;
-        return;
-      }
-
-      const selection = window.getSelection();
-      if (selection) {
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-    } catch (error) {
-      this.savedRange = null;
-    }
-  }
-
-  private isSelectionValid(): boolean {
-    if (!this.savedRange) return false;
-    
-    try {
-      return this.editor?.nativeElement.contains(this.savedRange.commonAncestorContainer) &&
-             document.contains(this.savedRange.startContainer) &&
-             document.contains(this.savedRange.endContainer);
-    } catch {
-      return false;
-    }
-  }
-
-  private scheduleUIUpdate(): void {
-    if (this.pendingUIUpdate) return;
-    
-    this.pendingUIUpdate = true;
-    this.rafId = requestAnimationFrame(() => {
-      this.updateToolbarState();
-      this.updateLineHeightUI();
-      this.pendingUIUpdate = false;
-      this.rafId = undefined;
-    });
-  }
-
-  private updateToolbarState(): void {
-    const editor = this.editor?.nativeElement;
-    if (!editor || (document.activeElement !== editor && !editor.contains(document.activeElement))) {
-      return;
-    }
-
-    try {
-      this.boldActive = document.queryCommandState('bold');
-      this.italicActive = document.queryCommandState('italic');
-      this.underlineActive = document.queryCommandState('underline');
-      this.strikeActive = document.queryCommandState('strikeThrough');
-      this.subActive = document.queryCommandState('subscript');
-      this.superActive = document.queryCommandState('superscript');
-    } catch (error) {
-      // Command state check failed - ignore
-    }
-  }
-
-  private updateLineHeightUI(): void {
-    const editor = this.editor?.nativeElement;
-    if (!editor || (document.activeElement !== editor && !editor.contains(document.activeElement))) {
-      return;
-    }
-
-    const currentValue = this.getCurrentLineHeightValue();
-    this.lineHeight.setValue(currentValue || '1.5', { emitEvent: false });
-  }
-
-  private handleKeyboardShortcuts(event: KeyboardEvent): void {
-    if (!event.ctrlKey && !event.metaKey) return;
-
-    const key = event.key.toLowerCase();
-    
-    // Check if it's a formatting shortcut we handle
-    const isFormattingShortcut = ['b', 'i', 'u', 'z', 'y'].includes(key);
-    
-    if (!isFormattingShortcut) return;
-    
-    // CRITICAL: Prevent default behavior AND stop propagation
-    event.preventDefault();
-    event.stopPropagation();
-    
-    // Save selection before executing command
-    this.saveCurrentSelection();
-    
-    // Execute the appropriate command
-    switch (key) {
-      case 'b':
-        this.formatBold();
-        break;
-      case 'i':
-        this.formatItalic();
-        break;
-      case 'u':
-        this.formatUnderline();
-        break;
-      case 'z':
-        event.shiftKey ? this.redoAction() : this.undoAction();
-        break;
-      case 'y':
-        this.redoAction();
-        break;
-    }
-    
-    // Update UI state immediately
-    this.scheduleUIUpdate();
-  }
-
-  private sanitizeContent(content: string): string {
-    return content
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
-      .replace(/on\w+\s*=\s*[^\s>]*/gi, '')
-      .replace(/javascript:/gi, '')
-      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-      .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
-      .replace(/<embed\b[^>]*>/gi, '')
-      .replace(/style\s*=\s*["'][^"']*expression\s*\([^"']*\)["']/gi, '')
-      .replace(/style\s*=\s*["'][^"']*javascript:[^"']*["']/gi, '')
-      .replace(/data-[a-z-]+\s*=\s*["'][^"']*javascript:[^"']*["']/gi, '');
-  }
-
-  executeCommand(command: string, value: string = '', showDefaultUI = false): void {
-    const savedRange = this.savedRange || this.saveSelection();
-    if (!savedRange || !this.isSelectionValid()) {
-      // FIXED: For keyboard shortcuts, try to get current selection
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const currentRange = selection.getRangeAt(0);
-        if (this.editor?.nativeElement.contains(currentRange.commonAncestorContainer)) {
-          this.savedRange = currentRange.cloneRange();
-        } else {
-          this.savedRange = null;
-          return;
-        }
-      } else {
-        this.savedRange = null;
-        return;
-      }
-    }
-
-    try {
-      if (!document.queryCommandSupported(command)) {
-        return;
-      }
-
-      // FIXED: Ensure selection is active before command
-      this.restoreSelection(this.savedRange);
-      
-      document.execCommand(command, showDefaultUI, value);
+    // Use setTimeout to capture state after command executes
+    setTimeout(() => {
+      this.historyManager.saveAfterCommand();
       this.updateContentFromEditor();
-      
-      // Save the new selection state after command
-      this.saveCurrentSelection();
       this.scheduleUIUpdate();
-    } catch (error) {
-      // Command execution failed
-    }
+    }, 0);
   }
 
-  private saveSelection(): Range | null {
-    const selection = window.getSelection();
-    return selection?.rangeCount ? selection.getRangeAt(0) : null;
-  }
-
-  formatBold(): void { this.executeCommand('bold'); }
-  formatItalic(): void { this.executeCommand('italic'); }
-  formatUnderline(): void { this.executeCommand('underline'); }
-  formatStrikethrough(): void { this.executeCommand('strikeThrough'); }
-  formatSubscript(): void { this.executeCommand('subscript'); }
-  formatSuperscript(): void { this.executeCommand('superscript'); }
-
-  alignLeft(): void { this.executeCommand('justifyLeft'); }
-  alignCenter(): void { this.executeCommand('justifyCenter'); }
-  alignRight(): void { this.executeCommand('justifyRight'); }
-  alignJustify(): void { this.executeCommand('justifyFull'); }
-
-  insertUnorderedList(): void { this.executeCommand('insertUnorderedList'); }
-  insertOrderedList(): void { this.executeCommand('insertOrderedList'); }
-
-  undoAction(): void { this.executeCommand('undo'); }
-  redoAction(): void { this.executeCommand('redo'); }
-  
-  selectAllText(): void {
+  /**
+   * Update content from editor and emit change
+   */
+  private updateContentFromEditor(): void {
     if (!this.editor) return;
-    
-    const editor = this.editor.nativeElement;
-    editor.focus();
 
-    const range = document.createRange();
-    range.selectNodeContents(editor);
-    
-    const selection = window.getSelection();
-    if (selection) {
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
+    // Don't emit during restore operations
+    if (this.historyManager.isRestoring()) return;
 
+    this.content = this.trackChangesService.getContent(
+      this.editor.nativeElement,
+      this.outputMode
+    );
+
+    this.contentChange$.next(this.content);
     this.scheduleUIUpdate();
   }
 
-  insertTable(): void {
-    const dialogRef = this.dialog.open(TableDialogComponent, {
-      width: '400px',
-      data: { maxRows: this.MAX_TABLE_ROWS, maxCols: this.MAX_TABLE_COLS }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result?.rows && result?.cols) {
-        this.generateTable(result.rows, result.cols);
-      }
-    });
-  }
-
-  private generateTable(rows: number, cols: number): void {
-    if (rows > this.MAX_TABLE_ROWS || cols > this.MAX_TABLE_COLS || rows < 1 || cols < 1) {
-      return;
-    }
-
-    const tableHTML = this.createTableHTML(rows, cols);
-    this.executeCommand('insertHTML', tableHTML);
-  }
-
-  private createTableHTML(rows: number, cols: number): string {
-    let html = '<table border="1" style="border-collapse: collapse; width: 100%; margin: 8px 0; border: 1px solid #ddd;">';
-
-    for (let i = 0; i < rows; i++) {
-      html += '<tr style="border: 1px solid #ddd;">';
-      for (let j = 0; j < cols; j++) {
-        html += '<td style="padding: 8px; border: 1px solid #ddd; min-width: 50px; background-color: #fff;">&nbsp;</td>';
-      }
-      html += '</tr>';
-    }
-
-    html += '</table>';
-    return html;
-  }
-
-  getGridRows(): number[] { return this.gridRows; }
-  getGridCols(): number[] { return this.gridCols; }
-
-  isCellSelected(rowIndex: number, colIndex: number): boolean {
-    return rowIndex < this.previewRows && colIndex < this.previewCols;
-  }
-
-  onCellHover(rowIndex: number, colIndex: number): void {
-    this.previewRows = rowIndex + 1;
-    this.previewCols = colIndex + 1;
-  }
-
-  showTableGrid(): void {
-    this.saveCurrentSelection();
-    this.clearTimeout(this.gridTimeout);
-    this.gridTimeout = undefined;
-    this.showGrid = true;
-    this.previewRows = 1;
-    this.previewCols = 1;
-  }
-
-  hideTableGrid(): void {
-    this.clearTimeout(this.gridTimeout);
-    
-    this.gridTimeout = setTimeout(() => {
-      this.showGrid = false;
-      this.previewRows = 1;
-      this.previewCols = 1;
-      this.gridTimeout = undefined;
-    }, this.OVERLAY_HIDE_DELAY);
-  }
-
-  keepGridVisible(): void {
-    this.clearTimeout(this.gridTimeout);
-    this.gridTimeout = undefined;
-  }
-
-  generateTableFromOverlay(rows: number, cols: number): void {
-    if (!this.editor) return;
-    
-    this.showGrid = false;
-    this.clearTimeout(this.gridTimeout);
-    this.gridTimeout = undefined;
-
-    if (this.savedRange && this.isSelectionValid()) {
-      this.restoreSelection(this.savedRange);
-    } else {
-      this.editor.nativeElement.focus();
-      const range = document.createRange();
-      const selection = window.getSelection();
-      
-      if (this.editor.nativeElement.lastChild) {
-        range.setStartAfter(this.editor.nativeElement.lastChild);
-        range.collapse(true);
-      } else {
-        range.selectNodeContents(this.editor.nativeElement);
-        range.collapse(false);
-      }
-      
-      if (selection) {
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-    }
-
-    const tableHTML = this.createTableHTML(rows, cols);
-    this.insertHTMLAtSelection(tableHTML);
-
-    this.previewRows = 1;
-    this.previewCols = 1;
-  }
-
-  private insertHTMLAtSelection(html: string): void {
-    const selection = window.getSelection();
-    
-    if (!selection || !this.editor) return;
-
-    const editor = this.editor.nativeElement;
-    
-    try {
-      if (selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-
-        if (editor.contains(range.startContainer)) {
-          document.execCommand('insertHTML', false, html);
-        } else {
-          const newRange = document.createRange();
-          newRange.selectNodeContents(editor);
-          newRange.collapse(false);
-          selection.removeAllRanges();
-          selection.addRange(newRange);
-          document.execCommand('insertHTML', false, html);
-        }
-      }
-
-      this.updateContentFromEditor();
-    } catch (error) {
-      // HTML insertion failed
-    }
-  }
-
-  insertImage(): void {
-    this.saveCurrentSelection();
-
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-
-    input.onchange = async (event: any) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      const validation = this.imageUploadService.validateImageFile(file, this.MAX_IMAGE_SIZE_MB);
-      if (!validation.valid) {
-        alert(validation.error);
-        return;
-      }
-
-      let previewUrl: string | null = null;
-
-      try {
-        const dimensions = await this.imageUploadService.getImageDimensions(file);
-
-        if (dimensions.width > this.MAX_IMAGE_DIMENSION || dimensions.height > this.MAX_IMAGE_DIMENSION) {
-          alert(`Image dimensions too large. Maximum allowed: ${this.MAX_IMAGE_DIMENSION}px`);
-          return;
-        }
-
-        previewUrl = URL.createObjectURL(file);
-
-        if (!file || !previewUrl || !dimensions || dimensions.width <= 0 || dimensions.height <= 0) {
-          if (previewUrl) {
-            URL.revokeObjectURL(previewUrl);
-          }
-          alert('Invalid image file');
-          return;
-        }
-
-        const dialogRef = this.dialog.open(ImageUploadDialogComponent, {
-          width: '700px',
-          maxWidth: '90vw',
-          maxHeight: '90vh',
-          disableClose: true,
-          panelClass: 'image-upload-dialog-panel',
-          autoFocus: false,
-          data: {
-            file,
-            previewUrl,
-            dimensions
-          }
-        });
-
-        dialogRef.afterClosed().subscribe({
-          next: (result) => {
-            if (previewUrl) {
-              URL.revokeObjectURL(previewUrl);
-              previewUrl = null;
-            }
-
-            if (result && result.url) {
-              this.insertImageWithProperties(result.url, result.config);
-            }
-          },
-          error: () => {
-            if (previewUrl) {
-              URL.revokeObjectURL(previewUrl);
-              previewUrl = null;
-            }
-          }
-        });
-
-      } catch (error) {
-        if (previewUrl) {
-          URL.revokeObjectURL(previewUrl);
-          previewUrl = null;
-        }
-        alert('Error processing image file');
-      }
-    };
-
-    input.click();
-  }
-
-  private insertImageWithProperties(url: string, config: any): void {
-    if (this.savedRange && this.isSelectionValid()) {
-      this.restoreSelection(this.savedRange);
-    }
-    
-    if (this.editor) {
-      this.editor.nativeElement.focus();
-    }
-
-    const sanitizedUrl = this.sanitizeImageUrl(url);
-    if (!sanitizedUrl) {
-      return;
-    }
-
-    const styles: string[] = [];
-    
-    if (config.width !== null && config.widthUnit !== 'auto') {
-      styles.push(`width: ${config.width}${config.widthUnit}`);
-    }
-    if (config.height !== null && config.heightUnit !== 'auto') {
-      styles.push(`height: ${config.height}${config.heightUnit}`);
-    }
-
-    if (config.alignment === 'left') {
-      styles.push('float: left');
-    } else if (config.alignment === 'right') {
-      styles.push('float: right');
-    } else if (config.alignment === 'center') {
-      styles.push('display: block', 'margin-left: auto', 'margin-right: auto');
-    }
-
-    styles.push(`vertical-align: ${config.verticalAlign}`);
-
-    if (config.hspace > 0) {
-      styles.push(`margin-left: ${config.hspace}px`, `margin-right: ${config.hspace}px`);
-    }
-    if (config.vspace > 0) {
-      styles.push(`margin-top: ${config.vspace}px`, `margin-bottom: ${config.vspace}px`);
-    }
-
-    if (config.border > 0 && config.borderStyle !== 'none') {
-      styles.push(`border: ${config.border}px ${config.borderStyle} ${config.borderColor}`);
-    }
-
-    const styleAttr = styles.length > 0 ? ` style="${styles.join('; ')}"` : '';
-    const altAttr = config.altText ? ` alt="${this.escapeHtml(config.altText)}"` : ' alt=""';
-    
-    const imageHTML = `<img src="${sanitizedUrl}"${altAttr}${styleAttr}>`;
-    
-    this.insertHTMLAtSelection(imageHTML);
-  }
-
-  private sanitizeImageUrl(url: string): string | null {
-    try {
-      if (url.startsWith('data:image/')) {
-        return url;
-      }
-      
-      const urlObj = new URL(url);
-      if (urlObj.protocol === 'https:' || urlObj.protocol === 'http:') {
-        return url;
-      }
-      
-      return null;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  showLineHeightGrid(): void {
-    this.saveCurrentSelection();
-    this.clearTimeout(this.lineHeightGridTimeout);
-    this.lineHeightGridTimeout = undefined;
-    this.showLineHeightGridFlag = true;
-  }
-
-  hideLineHeightGrid(): void {
-    this.clearTimeout(this.lineHeightGridTimeout);
-    
-    this.lineHeightGridTimeout = setTimeout(() => {
-      this.showLineHeightGridFlag = false;
-      this.lineHeightGridTimeout = undefined;
-    }, this.OVERLAY_HIDE_DELAY);
-  }
-
-  keepLineHeightGridVisible(): void {
-    this.clearTimeout(this.lineHeightGridTimeout);
-    this.lineHeightGridTimeout = undefined;
-  }
-
-  selectLineHeight(height: string): void {
-    const currentValue = this.getCurrentLineHeightValue();
-
-    if (currentValue === height) {
-      this.removeLineHeightStyle();
-    } else {
-      this.applyLineHeight(height);
-    }
-    
-    this.showLineHeightGridFlag = false;
-    this.clearTimeout(this.lineHeightGridTimeout);
-    this.lineHeightGridTimeout = undefined;
-  }
-
-  private applyLineHeight(height: string): void {
-    if (this.savedRange && this.isSelectionValid()) {
-      this.restoreSelection(this.savedRange);
-    }
-
-    if (this.editor) {
-      this.editor.nativeElement.focus();
-    }
-
-    const selection = window.getSelection();
-    if (!selection?.rangeCount) return;
-
-    const range = selection.getRangeAt(0);
-    
-    if (range.collapsed) {
-      let node: Node | null = range.startContainer;
-      while (node && node !== this.editor?.nativeElement) {
-        if (node.nodeType === Node.ELEMENT_NODE) {
-          const element = node as HTMLElement;
-          if (this.BLOCK_ELEMENTS.includes(element.tagName)) {
-            element.style.lineHeight = height;
-            this.lineHeight.setValue(height, { emitEvent: false });
-            this.updateContentFromEditor();
-            return;
-          }
-        }
-        node = node.parentElement;
-      }
-      
-      const div = document.createElement('div');
-      div.style.lineHeight = height;
-      range.insertNode(div);
-      range.selectNodeContents(div);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      
-      this.lineHeight.setValue(height, { emitEvent: false });
-      this.updateContentFromEditor();
-      return;
-    }
-
-    const elements = this.getBlockElementsInRange(range);
-
-    if (elements.length > 0) {
-      elements.forEach(element => {
-        element.style.lineHeight = height;
-      });
-    } else {
-      const div = document.createElement('div');
-      div.style.lineHeight = height;
-      
-      try {
-        range.surroundContents(div);
-      } catch (e) {
-        const fragment = range.extractContents();
-        div.appendChild(fragment);
-        range.insertNode(div);
-      }
-    }
-
-    this.lineHeight.setValue(height, { emitEvent: false });
-    this.updateContentFromEditor();
-    
-    this.restoreSelection(range);
-    this.editor?.nativeElement.focus();
-  }
-
-  private removeLineHeightStyle(): void {
-    if (this.savedRange && this.isSelectionValid()) {
-      this.restoreSelection(this.savedRange);
-    }
-
-    if (this.editor) {
-      this.editor.nativeElement.focus();
-    }
-
-    const selection = window.getSelection();
-    if (!selection?.rangeCount) return;
-
-    const range = selection.getRangeAt(0);
-    const elements = this.getBlockElementsInRange(range);
-
-    elements.forEach(element => {
-      if (element.style.lineHeight) {
-        element.style.lineHeight = '';
-        
-        if (!element.getAttribute('style')?.trim()) {
-          element.removeAttribute('style');
-        }
-      }
-    });
-
-    this.lineHeight.setValue('1.5', { emitEvent: false });
-    this.updateContentFromEditor();
-    
-    this.restoreSelection(range);
-    this.editor?.nativeElement.focus();
-  }
-
-  private getBlockElementsInRange(range: Range): HTMLElement[] {
-    let node: Node | null = range.commonAncestorContainer;
-
-    if (node?.nodeType === Node.TEXT_NODE) {
-      node = node.parentElement;
-    }
-
-    if (node === this.editor?.nativeElement) {
-      const selector = this.BLOCK_ELEMENTS.join(',');
-      const allBlocks = this.editor.nativeElement.querySelectorAll(selector);
-      
-      const selectedBlocks: HTMLElement[] = [];
-      allBlocks.forEach((block: Element) => {
-        const blockRange = document.createRange();
-        try {
-          blockRange.selectNodeContents(block);
-          
-          if (this.rangesIntersect(range, blockRange)) {
-            selectedBlocks.push(block as HTMLElement);
-          }
-        } catch (error) {
-          // Range intersection check failed
-        }
-      });
-      
-      return selectedBlocks;
-    }
-
-    const elements: HTMLElement[] = [];
-    let currentNode = node;
-    
-    while (currentNode && currentNode !== this.editor?.nativeElement) {
-      if (currentNode.nodeType === Node.ELEMENT_NODE) {
-        const element = currentNode as HTMLElement;
-        if (this.BLOCK_ELEMENTS.includes(element.tagName)) {
-          elements.push(element);
-          break;
-        }
-      }
-      currentNode = currentNode.parentElement;
-    }
-
-    if (elements.length === 0 && node) {
-      let parentNode = node.parentElement;
-      while (parentNode && parentNode !== this.editor?.nativeElement) {
-        if (this.BLOCK_ELEMENTS.includes(parentNode.tagName)) {
-          elements.push(parentNode);
-          break;
-        }
-        parentNode = parentNode.parentElement;
-      }
-    }
-
-    return elements;
-  }
-
-  private rangesIntersect(range1: Range, range2: Range): boolean {
-    try {
-      return range1.compareBoundaryPoints(Range.END_TO_START, range2) <= 0 &&
-             range1.compareBoundaryPoints(Range.START_TO_END, range2) >= 0;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  private getCurrentLineHeightValue(): string {
-    const range = this.savedRange || this.saveSelection();
-    if (!range) return '';
-
-    let node: Node | null = range.commonAncestorContainer;
-
-    if (node?.nodeType === Node.TEXT_NODE) {
-      node = node.parentElement;
-    }
-
-    while (node && node !== this.editor?.nativeElement) {
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        const element = node as HTMLElement;
-        const lineHeight = element.style.lineHeight;
-        
-        if (lineHeight && lineHeight !== 'normal' && lineHeight !== '') {
-          return this.normalizeLineHeight(lineHeight, element);
-        }
-      }
-      node = node.parentElement;
-    }
-    
-    return '';
-  }
-
-  private normalizeLineHeight(lineHeight: string, element: HTMLElement): string {
-    if (/^[\d.]+$/.test(lineHeight)) {
-      return lineHeight;
-    }
-
-    if (lineHeight.endsWith('px')) {
-      try {
-        const computedStyle = window.getComputedStyle(element);
-        const fontSize = parseFloat(computedStyle.fontSize);
-        const lineHeightPx = parseFloat(lineHeight);
-        
-        if (fontSize > 0 && !isNaN(lineHeightPx)) {
-          const relative = (lineHeightPx / fontSize).toFixed(1);
-          const match = this.lineHeights.find(h => 
-            Math.abs(parseFloat(h) - parseFloat(relative)) < 0.1
-          );
-          return match || relative;
-        }
-      } catch (error) {
-        // Normalization failed
-      }
-    }
-
-    return lineHeight;
-  }
-
+  /**
+   * Initialize track changes functionality
+   */
   private initializeTrackChanges(): void {
-    this.trackChangesService.getState()
+    this.trackChangesService
+      .getState()
       .pipe(takeUntil(this.destroy$))
       .subscribe(state => {
         this.trackChangesState = state;
-        this.updateContentFromEditor();
+        // Don't call updateContentFromEditor during restore
+        if (!this.historyManager.isRestoring()) {
+          this.updateContentFromEditor();
+        }
       });
   }
 
+  /**
+   * Toggle track changes on/off
+   */
   onToggleTrackChanges(): void {
     const state = this.trackChangesState;
 
@@ -982,98 +474,115 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
         );
         if (!confirm) return;
       }
-
       this.trackChangesService.disableTracking();
     } else {
       if (!this.editor) return;
       this.trackChangesService.enableTracking(this.editor.nativeElement);
     }
+
+    // Save snapshot after toggling track changes
+    this.historyManager.save();
   }
 
+  /**
+   * Show/hide track changes
+   */
   onTrackChangesShow(visible: boolean): void {
     this.trackChangesService.toggleShowChanges(visible);
   }
 
+  /**
+   * Accept all changes
+   */
   onAcceptAllChanges(): void {
-    const state = this.trackChangesState;
-
-    if (state.pendingCount === 0) return;
+    if (this.trackChangesState.pendingCount === 0) return;
 
     const confirm = window.confirm(
-      `Are you sure you want to accept all ${state.pendingCount} changes? This action cannot be undone.`
+      `Are you sure you want to accept all ${this.trackChangesState.pendingCount} changes? This action cannot be undone.`
     );
 
     if (confirm) {
+      this.historyManager.saveBeforeCommand();
       this.trackChangesService.acceptAllChanges();
+      this.historyManager.saveAfterCommand();
     }
   }
 
+  /**
+   * Reject all changes
+   */
   onRejectAllChanges(): void {
-    const state = this.trackChangesState;
-
-    if (state.pendingCount === 0) return;
+    if (this.trackChangesState.pendingCount === 0) return;
 
     const confirm = window.confirm(
-      `Are you sure you want to reject all ${state.pendingCount} changes? This action cannot be undone.`
+      `Are you sure you want to reject all ${this.trackChangesState.pendingCount} changes? This action cannot be undone.`
     );
 
     if (confirm) {
+      this.historyManager.saveBeforeCommand();
       this.trackChangesService.rejectAllChanges();
+      this.historyManager.saveAfterCommand();
     }
   }
 
+  /**
+   * Accept one change at selection
+   */
   onAcceptOneChange(): void {
-    const state = this.trackChangesState;
-
-    if (state.pendingCount === 0) {
+    if (this.trackChangesState.pendingCount === 0) {
       alert('No pending changes to accept.');
       return;
     }
 
+    this.historyManager.saveBeforeCommand();
     const accepted = this.trackChangesService.acceptChangeAtSelection();
+
+    if (accepted) {
+      this.historyManager.saveAfterCommand();
+    }
 
     if (!accepted) {
       alert('Please click on or select a tracked change to accept it.');
     }
   }
 
+  /**
+   * Reject one change at selection
+   */
   onRejectOneChange(): void {
-    const state = this.trackChangesState;
-
-    if (state.pendingCount === 0) {
+    if (this.trackChangesState.pendingCount === 0) {
       alert('No pending changes to reject.');
       return;
     }
 
+    this.historyManager.saveBeforeCommand();
     const rejected = this.trackChangesService.rejectChangeAtSelection();
+
+    if (rejected) {
+      this.historyManager.saveAfterCommand();
+    }
 
     if (!rejected) {
       alert('Please click on or select a tracked change to reject it.');
     }
   }
 
-  private updateContentFromEditor(): void {
-    if (this.editor) {
-      this.content = this.trackChangesService.getContent(
-        this.editor.nativeElement, 
-        this.outputMode
-      );
-      this.contentChange.emit(this.content);
-      this.contentChange$.next(this.content);
-    }
-  }
-
+  /**
+   * Public API: Get editor content
+   */
   getContent(): string {
     if (!this.editor) return '';
-
     return this.trackChangesService.getContent(
       this.editor.nativeElement,
       this.outputMode
     );
   }
 
+  /**
+   * Public API: Set editor content
+   */
   setContent(content: string): void {
-    const sanitized = this.sanitizeContent(content);
+    const sanitized = this.sanitizer.sanitizeContent(content);
     this.content = sanitized;
 
     if (this.editor) {
@@ -1085,6 +594,10 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
 
       this.editor.nativeElement.innerHTML = sanitized;
 
+      // Reset history when content is set programmatically
+      this.historyManager.reset();
+      this.historyManager.initialize();
+
       if (wasEnabled) {
         this.trackChangesService.enableTracking(this.editor.nativeElement);
       }
@@ -1093,11 +606,17 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  /**
+   * Public API: Set output mode
+   */
   setOutputMode(mode: EditorOutputMode): void {
     this.outputMode = mode;
     this.updateContentFromEditor();
   }
 
+  /**
+   * Public API: Get output mode
+   */
   getOutputMode(): EditorOutputMode {
     return this.outputMode;
   }

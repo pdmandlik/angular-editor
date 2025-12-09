@@ -1,224 +1,50 @@
 <mat-toolbar style="padding: 8px; display: flex; justify-content: flex-start; gap: 4px; flex-wrap: wrap;">
   <!-- Text Formatting Group -->
-  <button
-    matTooltip="Bold (Ctrl+B)"
-    mat-icon-button
-    (click)="formatBold()"
-    [class.active]="boldActive"
-    type="button">
-    <mat-icon>format_bold</mat-icon>
-  </button>
-  <button
-    matTooltip="Italic (Ctrl+I)"
-    mat-icon-button
-    (click)="formatItalic()"
-    [class.active]="italicActive"
-    type="button">
-    <mat-icon>format_italic</mat-icon>
-  </button>
-  <button
-    matTooltip="Underline"
-    mat-icon-button
-    (click)="formatUnderline()"
-    [class.active]="underlineActive"
-    type="button">
-    <mat-icon>format_underlined</mat-icon>
-  </button>
-  <button
-    matTooltip="Strikethrough"
-    mat-icon-button
-    (click)="formatStrikethrough()"
-    [class.active]="strikeActive"
-    type="button">
-    <mat-icon>strikethrough_s</mat-icon>
-  </button>
-  <button
-    matTooltip="Subscript"
-    mat-icon-button
-    (click)="formatSubscript()"
-    [class.active]="subActive"
-    type="button">
-    <mat-icon>subscript</mat-icon>
-  </button>
-  <button
-    matTooltip="Superscript"
-    mat-icon-button
-    (click)="formatSuperscript()"
-    [class.active]="superActive"
-    type="button">
-    <mat-icon>superscript</mat-icon>
-  </button>
+  <ed-text-formatting-toolbar #textFormattingToolbar (commandExecuted)="onCommandExecuted()">
+  </ed-text-formatting-toolbar>
 
   <mat-divider vertical></mat-divider>
 
   <!-- Alignment Group -->
-  <button
-    matTooltip="Align Left"
-    mat-icon-button
-    (click)="alignLeft()"
-    type="button">
-    <mat-icon>format_align_left</mat-icon>
-  </button>
-  <button
-    matTooltip="Align Center"
-    mat-icon-button
-    (click)="alignCenter()"
-    type="button">
-    <mat-icon>format_align_center</mat-icon>
-  </button>
-  <button
-    matTooltip="Align Right"
-    mat-icon-button
-    (click)="alignRight()"
-    type="button">
-    <mat-icon>format_align_right</mat-icon>
-  </button>
-  <button
-    matTooltip="Justify Content"
-    mat-icon-button
-    (click)="alignJustify()"
-    type="button">
-    <mat-icon>format_align_justify</mat-icon>
-  </button>
+  <ed-alignment-toolbar (commandExecuted)="onCommandExecuted()">
+  </ed-alignment-toolbar>
 
   <mat-divider vertical></mat-divider>
 
   <!-- List Group -->
-  <button
-    matTooltip="Bullet List"
-    mat-icon-button
-    (click)="insertUnorderedList()"
-    type="button">
-    <mat-icon>format_list_bulleted</mat-icon>
-  </button>
-  <button
-    matTooltip="Numbered List"
-    mat-icon-button
-    (click)="insertOrderedList()"
-    type="button">
-    <mat-icon>format_list_numbered</mat-icon>
-  </button>
+  <ed-list-toolbar (commandExecuted)="onCommandExecuted()">
+  </ed-list-toolbar>
 
   <mat-divider vertical></mat-divider>
 
   <!-- History Group -->
-  <button
-    matTooltip="Undo"
-    mat-icon-button
-    (click)="undoAction()"
-    type="button">
-    <mat-icon>undo</mat-icon>
-  </button>
-  <button
-    matTooltip="Redo"
-    mat-icon-button
-    (click)="redoAction()"
-    type="button">
-    <mat-icon>redo</mat-icon>
-  </button>
-  <button
-    matTooltip="Select All"
-    mat-icon-button
-    (click)="selectAllText()"
-    type="button">
-    <mat-icon>select_all</mat-icon>
-  </button>
+  <ed-history-toolbar #historyToolbar (commandExecuted)="onCommandExecuted()">
+  </ed-history-toolbar>
 
   <mat-divider vertical></mat-divider>
 
-  <!-- Advanced Features -->
-  <div class="table-button-container">
-    <button
-      matTooltip="Insert Table"
-      mat-icon-button
-      (mouseenter)="showTableGrid()"
-      (mouseleave)="hideTableGrid()"
-      type="button">
-      <mat-icon>table_chart</mat-icon>
-    </button>
+  <!-- Table Group -->
+  <ed-table-toolbar (commandExecuted)="onCommandExecuted()">
+  </ed-table-toolbar>
 
-    <!-- Custom table grid overlay -->
-    <div class="table-grid-overlay" *ngIf="showGrid" (mouseenter)="keepGridVisible()" (mouseleave)="hideTableGrid()">
-      <div class="table-grid-container">
-        <div class="grid-preview">{{previewRows}} × {{previewCols}}</div>
-        <div class="table-grid">
-          <div class="grid-row" *ngFor="let row of getGridRows(); let rowIndex = index">
-            <div class="grid-cell"
-                 *ngFor="let cell of getGridCols(); let colIndex = index"
-                 [class.selected]="isCellSelected(rowIndex, colIndex)"
-                 (mouseenter)="onCellHover(rowIndex, colIndex)"
-                 (click)="generateTableFromOverlay(rowIndex + 1, colIndex + 1)">
-            </div>
-          </div>
-        </div>
-        <div class="grid-footer">
-          Hover to preview, click to insert
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <button
-    matTooltip="Insert Image"
-    mat-icon-button
-    (click)="insertImage()"
-    type="button">
-    <mat-icon>image</mat-icon>
-  </button>
+  <!-- Image Group -->
+  <ed-image-toolbar (commandExecuted)="onCommandExecuted()">
+  </ed-image-toolbar>
 
   <mat-divider vertical></mat-divider>
 
-  <!-- Line Height Grid Selector -->
-  <div class="line-height-button-container">
-    <button
-      matTooltip="Line Height ({{lineHeight.value || '1.5'}})"
-      mat-icon-button
-      (mouseenter)="showLineHeightGrid()"
-      (mouseleave)="hideLineHeightGrid()"
-      type="button"
-      class="line-height-button">
-      <mat-icon>format_line_spacing</mat-icon>
-    </button>
-
-    <!-- Custom line height grid overlay -->
-    <div class="line-height-grid-overlay" 
-         *ngIf="showLineHeightGridFlag" 
-         (mouseenter)="keepLineHeightGridVisible()" 
-         (mouseleave)="hideLineHeightGrid()">
-      <div class="line-height-grid-container">
-        <div class="grid-title">Line Height</div>
-        <div class="line-height-grid">
-          <div class="height-option"
-               *ngFor="let height of lineHeights"
-               [class.selected]="height === lineHeight.value"
-               (mousedown)="$event.preventDefault(); selectLineHeight(height)"
-               [attr.data-height]="height"
-               [style.line-height]="height">
-            {{height}}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- Line Height Group -->
+  <ed-line-height-toolbar #lineHeightToolbar (commandExecuted)="onCommandExecuted()">
+  </ed-line-height-toolbar>
 
   <!-- Track Changes Toolbar -->
-  <app-track-changes-toolbar
-    [visible]="trackChangesVisible"
-    (toggleTracking)="onToggleTrackChanges()"
-    (toggleShow)="onTrackChangesShow($event)"
-    (acceptAll)="onAcceptAllChanges()"
-    (rejectAll)="onRejectAllChanges()"
-    (acceptOne)="onAcceptOneChange()"
-    (rejectOne)="onRejectOneChange()">
-  </app-track-changes-toolbar>
+  <ed-track-changes-toolbar [visible]="trackChangesVisible" (toggleTracking)="onToggleTrackChanges()"
+    (toggleShow)="onTrackChangesShow($event)" (acceptAll)="onAcceptAllChanges()" (rejectAll)="onRejectAllChanges()"
+    (acceptOne)="onAcceptOneChange()" (rejectOne)="onRejectOneChange()">
+  </ed-track-changes-toolbar>
 </mat-toolbar>
 
-<div
-  #editor
-  contenteditable="true"
-  appTrackChangesTooltip
-  [attr.data-placeholder]="placeholder"
-  [style.height]="height"
+<div #editor contenteditable="true" appTrackChangesTooltip [attr.data-placeholder]="placeholder" [style.height]="height"
   class="wysiwyg-editor"
-  style="padding: 16px; border: 1px solid #ccc; border-radius: 4px; margin-top: 8px; outline: none; overflow-y: auto;"
-></div>
+  style="padding: 16px; border: 1px solid #ccc; border-radius: 4px; margin-top: 8px; outline: none; overflow-y: auto;">
+</div>
