@@ -16,6 +16,7 @@ export { TrackChangesInsertService, InsertOptions } from './track-changes-insert
 export { TrackChangesDeleteService } from './track-changes-delete.service';
 export { TrackChangesAcceptRejectService } from './track-changes-accept-reject.service';
 export { TrackChangesEventService } from './track-changes-event.service';
+export { TrackChangesContextMenuService, TrackChangesContextMenuData } from './track-changes-context-menu.service';
 
 // Main orchestrator service (primary import)
 export { TrackChangesService } from './track-changes.service';

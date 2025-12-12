@@ -38,13 +38,33 @@
   </ed-line-height-toolbar>
 
   <!-- Track Changes Toolbar -->
-  <ed-track-changes-toolbar [visible]="trackChangesVisible" (toggleTracking)="onToggleTrackChanges()"
-    (toggleShow)="onTrackChangesShow($event)" (acceptAll)="onAcceptAllChanges()" (rejectAll)="onRejectAllChanges()"
-    (acceptOne)="onAcceptOneChange()" (rejectOne)="onRejectOneChange()">
+  <ed-track-changes-toolbar 
+    [visible]="trackChangesVisible" 
+    (toggleTracking)="onToggleTrackChanges()"
+    (toggleShow)="onTrackChangesShow($event)" 
+    (acceptAll)="onAcceptAllChanges()" 
+    (rejectAll)="onRejectAllChanges()"
+    (acceptOne)="onAcceptOneChange()" 
+    (rejectOne)="onRejectOneChange()">
   </ed-track-changes-toolbar>
 </mat-toolbar>
 
-<div #editor contenteditable="true" appTrackChangesTooltip [attr.data-placeholder]="placeholder" [style.height]="height"
+<!-- Editor Content Area -->
+<div 
+  #editor 
+  contenteditable="true" 
+  appTrackChangesTooltip 
+  [attr.data-placeholder]="placeholder" 
+  [style.height]="height"
   class="wysiwyg-editor"
   style="padding: 16px; border: 1px solid #ccc; border-radius: 4px; margin-top: 8px; outline: none; overflow-y: auto;">
 </div>
+
+<!-- Track Changes Context Menu (right-click menu) -->
+<ed-track-changes-context-menu 
+  #trackChangesContextMenu
+  (acceptCurrent)="onContextMenuAcceptCurrent($event)"
+  (rejectCurrent)="onContextMenuRejectCurrent($event)"
+  (acceptAll)="onContextMenuAcceptAll()"
+  (rejectAll)="onContextMenuRejectAll()">
+</ed-track-changes-context-menu>

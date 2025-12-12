@@ -23,6 +23,7 @@ import { TableToolbarComponent } from '../editor-toolbar/table-toolbar/table-too
 import { ImageToolbarComponent } from '../editor-toolbar/image-toolbar/image-toolbar.component';
 import { LineHeightToolbarComponent } from '../editor-toolbar/line-height-toolbar/line-height-toolbar.component';
 import { TrackChangesToolbarComponent } from '../track-changes/track-changes-toolbar/track-changes-toolbar.component';
+import { TrackChangesContextMenuComponent } from '../track-changes/track-changes-context-menu/track-changes-context-menu.component';
 
 // Import directive
 import { TrackChangesTooltipDirective } from 'src/app/directives/track-changes-tooltip.directive';
@@ -32,6 +33,7 @@ import { CommandExecutorService } from 'src/app/services/command-executor.servic
 import { SelectionManagerService } from 'src/app/services/selection-manager.service';
 import { ContentSanitizerService } from 'src/app/services/content-sanitizer.service';
 import { TrackChangesService } from 'src/app/services/track-changes';
+import { TrackChangesContextMenuService } from 'src/app/services/track-changes/track-changes-context-menu.service';
 import { HistoryManagerService } from 'src/app/services/history-manager.service';
 import { EnterKeyService } from 'src/app/services/enter-key.service';
 
@@ -58,6 +60,7 @@ import {
     ImageToolbarComponent,
     LineHeightToolbarComponent,
     TrackChangesToolbarComponent,
+    TrackChangesContextMenuComponent,
     TrackChangesTooltipDirective
   ],
   templateUrl: './editor.component.html',
@@ -69,6 +72,7 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('textFormattingToolbar') textFormattingToolbar!: TextFormattingToolbarComponent;
   @ViewChild('lineHeightToolbar') lineHeightToolbar!: LineHeightToolbarComponent;
   @ViewChild('historyToolbar') historyToolbar!: HistoryToolbarComponent;
+  @ViewChild('trackChangesContextMenu') trackChangesContextMenu!: TrackChangesContextMenuComponent;
 
   @Input() content = '';
   @Input() height = '400px';
@@ -87,6 +91,7 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private contentChange$ = new Subject<string>();
   private selectionChangeListener?: () => void;
+  private contextMenuListener?: (e: Event) => void;
   private rafId: number | undefined;
   private pendingUIUpdate = false;
   private trackChangesState: TrackChangesState = {
@@ -101,6 +106,7 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     private selectionManager: SelectionManagerService,
     private sanitizer: ContentSanitizerService,
     public trackChangesService: TrackChangesService,
+    private contextMenuService: TrackChangesContextMenuService,
     public historyManager: HistoryManagerService,
     private enterKeyService: EnterKeyService
   ) { }
@@ -144,7 +150,6 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     const editorEl = this.editor.nativeElement;
 
     // Initialize services with editor element
-    // NOTE: CommandExecutorService doesn't have setEditorElement - it uses SelectionManagerService
     this.selectionManager.setEditorElement(editorEl);
     this.historyManager.setEditorElement(editorEl);
     this.enterKeyService.setEditorElement(editorEl);
@@ -192,7 +197,83 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     this.destroy$.complete();
     this.cancelAnimationFrame();
     this.removeSelectionListener();
+    this.removeContextMenuListener();
   }
+
+  // ============================================================================
+  // CONTEXT MENU HANDLING
+  // ============================================================================
+
+  /**
+   * Handle context menu (right-click) on the editor
+   */
+  private onEditorContextMenu(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    const editorEl = this.editor?.nativeElement;
+
+    // Only handle right-clicks inside the editor
+    if (!editorEl || !editorEl.contains(target)) {
+      return;
+    }
+
+    // Check if we should show the track changes context menu
+    if (this.contextMenuService.shouldShowContextMenu(event)) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Get context data for the clicked element
+      const contextData = this.contextMenuService.getContextMenuData(target);
+
+      // Open the context menu at click position
+      if (this.trackChangesContextMenu) {
+        this.trackChangesContextMenu.openMenu(event.clientX, event.clientY, contextData);
+      }
+    }
+  }
+
+  /**
+   * Handle accept current change from context menu
+   */
+  onContextMenuAcceptCurrent(changeId: string): void {
+    this.historyManager.saveBeforeCommand();
+    this.trackChangesService.acceptChange(changeId);
+    this.historyManager.saveAfterCommand();
+    this.updateContentFromEditor();
+  }
+
+  /**
+   * Handle reject current change from context menu
+   */
+  onContextMenuRejectCurrent(changeId: string): void {
+    this.historyManager.saveBeforeCommand();
+    this.trackChangesService.rejectChange(changeId);
+    this.historyManager.saveAfterCommand();
+    this.updateContentFromEditor();
+  }
+
+  /**
+   * Handle accept all changes from context menu
+   */
+  onContextMenuAcceptAll(): void {
+    this.historyManager.saveBeforeCommand();
+    this.trackChangesService.acceptAllChanges();
+    this.historyManager.saveAfterCommand();
+    this.updateContentFromEditor();
+  }
+
+  /**
+   * Handle reject all changes from context menu
+   */
+  onContextMenuRejectAll(): void {
+    this.historyManager.saveBeforeCommand();
+    this.trackChangesService.rejectAllChanges();
+    this.historyManager.saveAfterCommand();
+    this.updateContentFromEditor();
+  }
+
+  // ============================================================================
+  // LIFECYCLE HELPERS
+  // ============================================================================
 
   /**
    * Called after undo/redo completes
@@ -217,6 +298,10 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     editorEl.addEventListener('focus', this.onEditorFocus.bind(this));
     editorEl.addEventListener('blur', this.onEditorBlur.bind(this));
     editorEl.addEventListener('click', this.onEditorClick.bind(this));
+
+    // Context menu listener for track changes
+    this.contextMenuListener = (e: Event) => this.onEditorContextMenu(e as MouseEvent);
+    editorEl.addEventListener('contextmenu', this.contextMenuListener);
   }
 
   /**
@@ -225,6 +310,15 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   private removeSelectionListener(): void {
     if (this.selectionChangeListener) {
       document.removeEventListener('selectionchange', this.selectionChangeListener);
+    }
+  }
+
+  /**
+   * Remove context menu listener
+   */
+  private removeContextMenuListener(): void {
+    if (this.contextMenuListener && this.editor?.nativeElement) {
+      this.editor.nativeElement.removeEventListener('contextmenu', this.contextMenuListener);
     }
   }
 
@@ -469,6 +563,10 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
+  // ============================================================================
+  // TRACK CHANGES TOOLBAR HANDLERS
+  // ============================================================================
+
   /**
    * Toggle track changes on/off
    */
@@ -573,6 +671,10 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
       alert('Please click on or select a tracked change to reject it.');
     }
   }
+
+  // ============================================================================
+  // PUBLIC API
+  // ============================================================================
 
   /**
    * Public API: Get editor content
