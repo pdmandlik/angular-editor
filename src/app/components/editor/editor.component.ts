@@ -31,11 +31,17 @@ import { TrackChangesTooltipDirective } from 'src/app/directives/track-changes-t
 import { CommandExecutorService } from 'src/app/services/command-executor.service';
 import { SelectionManagerService } from 'src/app/services/selection-manager.service';
 import { ContentSanitizerService } from 'src/app/services/content-sanitizer.service';
-import { TrackChangesService } from 'src/app/services/track-changes.service';
+import { TrackChangesService } from 'src/app/services/track-changes';
 import { HistoryManagerService } from 'src/app/services/history-manager.service';
+import { EnterKeyService } from 'src/app/services/enter-key.service';
 
 // Import entities
-import { TrackChangesState, EditorOutputMode } from 'src/app/entities/editor-config';
+import {
+  TrackChangesState,
+  EditorOutputMode,
+  EnterMode,
+  DEFAULT_EDITOR_CONFIG
+} from 'src/app/entities/editor-config';
 
 @Component({
   selector: 'cg-editor',
@@ -55,7 +61,8 @@ import { TrackChangesState, EditorOutputMode } from 'src/app/entities/editor-con
     TrackChangesTooltipDirective
   ],
   templateUrl: './editor.component.html',
-  styleUrls: ['./editor.component.scss']
+  styleUrls: ['./editor.component.scss'],
+  providers: [EnterKeyService]
 })
 export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('editor') editor!: ElementRef;
@@ -63,10 +70,14 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('lineHeightToolbar') lineHeightToolbar!: LineHeightToolbarComponent;
   @ViewChild('historyToolbar') historyToolbar!: HistoryToolbarComponent;
 
-  @Input() content = '<h2>Welcome to Custom WYSIWYG Editor</h2><p>Start editing...</p>';
+  @Input() content = '';
   @Input() height = '400px';
   @Input() placeholder = 'Start typing here...';
   @Input() outputMode: EditorOutputMode = EditorOutputMode.WithTrackedChanges;
+
+  // Enter mode configuration inputs
+  @Input() enterMode: EnterMode = DEFAULT_EDITOR_CONFIG.enterMode;
+  @Input() shiftEnterMode: EnterMode = DEFAULT_EDITOR_CONFIG.shiftEnterMode;
 
   @Output() contentChange = new EventEmitter<string>();
 
@@ -89,11 +100,15 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     private commandExecutor: CommandExecutorService,
     private selectionManager: SelectionManagerService,
     private sanitizer: ContentSanitizerService,
-    private trackChangesService: TrackChangesService,
-    private historyManager: HistoryManagerService
+    public trackChangesService: TrackChangesService,
+    public historyManager: HistoryManagerService,
+    private enterKeyService: EnterKeyService
   ) { }
 
   ngOnInit(): void {
+    // Configure enter key modes
+    this.enterKeyService.configure(this.enterMode, this.shiftEnterMode);
+
     // Setup debounced content change emission
     this.contentChange$
       .pipe(
@@ -129,20 +144,22 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     const editorEl = this.editor.nativeElement;
 
     // Initialize services with editor element
+    // NOTE: CommandExecutorService doesn't have setEditorElement - it uses SelectionManagerService
     this.selectionManager.setEditorElement(editorEl);
     this.historyManager.setEditorElement(editorEl);
+    this.enterKeyService.setEditorElement(editorEl);
+
+    // Connect track changes service with enter key service
+    this.trackChangesService.setEnterKeyService(this.enterKeyService);
 
     // CRITICAL: Register track changes reload callback
-    // This is what LITE plugin does - it reloads tracker state after undo/redo
     this.historyManager.setTrackChangesReloadCallback(() => {
       if (this.trackChangesService.isTracking()) {
         this.trackChangesService.reload();
       }
     });
 
-    // NEW: Register content change callback for track changes -> history integration
-    // When track changes modifies content (bypassing native input events),
-    // we need to notify the history manager to record the change for undo/redo
+    // Register content change callback for track changes -> history integration
     this.trackChangesService.setContentChangeCallback(() => {
       if (!this.historyManager.isRestoring()) {
         this.historyManager.type();
@@ -153,6 +170,9 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     // Set initial content
     const sanitized = this.sanitizer.sanitizeContent(this.content);
     editorEl.innerHTML = sanitized;
+
+    // Ensure proper initial structure based on enter mode
+    this.enterKeyService.ensureProperStructure();
 
     // Initialize history manager with content (saves initial snapshot)
     this.historyManager.initialize();
@@ -176,12 +196,9 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /**
    * Called after undo/redo completes
-   * This mirrors CKEditor's afterUndo/afterRedo events
    */
   private onAfterUndoRedo(): void {
-    // Update content output
     this.updateContentFromEditor();
-    // Update toolbar states
     this.updateToolbarStates();
   }
 
@@ -191,21 +208,14 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   private attachEditorListeners(): void {
     const editorEl = this.editor.nativeElement;
 
-    // Input event - fires on content changes (when track changes is disabled)
     editorEl.addEventListener('input', this.onEditorInput.bind(this));
-
-    // Keydown - for shortcuts and special keys
     editorEl.addEventListener('keydown', this.onEditorKeyDown.bind(this));
 
-    // Selection change listener
     this.selectionChangeListener = this.onSelectionChange.bind(this);
     document.addEventListener('selectionchange', this.selectionChangeListener);
 
-    // Focus/blur for state management
     editorEl.addEventListener('focus', this.onEditorFocus.bind(this));
     editorEl.addEventListener('blur', this.onEditorBlur.bind(this));
-
-    // Click for toolbar updates
     editorEl.addEventListener('click', this.onEditorClick.bind(this));
   }
 
@@ -220,37 +230,51 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /**
    * Handle editor input event
-   * Note: This only fires when track changes is DISABLED
-   * When track changes is enabled, TrackChangesService intercepts beforeinput
-   * and calls historyManager.type() via the content change callback
    */
   private onEditorInput(): void {
-    // Don't record if we're in the middle of undo/redo restore
     if (this.historyManager.isRestoring()) {
       return;
     }
 
-    // Only notify history manager if track changes is NOT enabled
-    // (when enabled, TrackChangesService handles this via callback)
     if (!this.trackChangesService.isTracking()) {
       this.historyManager.type();
     }
 
-    // Update output content
     this.updateContentFromEditor();
   }
 
   /**
-   * Handle keydown for shortcuts and navigation
+   * Handle keydown for shortcuts, navigation, and enter key
    */
   private onEditorKeyDown(event: KeyboardEvent): void {
     // Handle keyboard shortcuts (Ctrl+Z, Ctrl+Y, Ctrl+B, etc.)
     this.handleKeyboardShortcuts(event);
 
-    // Check for navigation keys (arrows, home, end, etc.)
+    // Handle Enter key when track changes is DISABLED
+    if ((event.key === 'Enter') && !this.trackChangesService.isTracking()) {
+      event.preventDefault();
+      this.handleEnterKey(event.shiftKey);
+      return;
+    }
+
+    // Check for navigation keys
     if (this.isNavigationKey(event.key)) {
-      // Navigation stops typing mode
       this.historyManager.stopTyping();
+    }
+  }
+
+  /**
+   * Handle Enter key press when track changes is disabled
+   */
+  private handleEnterKey(isShiftKey: boolean): void {
+    this.historyManager.saveBeforeCommand();
+
+    const handled = this.enterKeyService.executeEnter(isShiftKey);
+
+    if (handled) {
+      this.historyManager.saveAfterCommand();
+      this.updateContentFromEditor();
+      this.scheduleUIUpdate();
     }
   }
 
@@ -265,17 +289,13 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (!isFormattingShortcut) return;
 
-    // CRITICAL: Prevent default browser behavior
     event.preventDefault();
     event.stopPropagation();
 
-    // Handle undo/redo
     if (key === 'z') {
       if (event.shiftKey) {
-        // Ctrl+Shift+Z = Redo
         this.historyManager.redo();
       } else {
-        // Ctrl+Z = Undo
         this.historyManager.undo();
       }
       this.updateToolbarStates();
@@ -283,13 +303,11 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     if (key === 'y') {
-      // Ctrl+Y = Redo
       this.historyManager.redo();
       this.updateToolbarStates();
       return;
     }
 
-    // For formatting commands, save snapshot before and after
     this.historyManager.saveBeforeCommand();
     this.selectionManager.saveSelection();
 
@@ -317,17 +335,13 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     const editor = this.editor?.nativeElement;
     if (!editor) return;
 
-    // Only process if selection is within editor
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
 
     const range = selection.getRangeAt(0);
     if (!editor.contains(range.commonAncestorContainer)) return;
 
-    // Update selection in history manager (for selection-only snapshots)
     this.historyManager.update();
-
-    // Schedule UI update
     this.scheduleUIUpdate();
   }
 
@@ -343,7 +357,6 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
    * Handle editor blur
    */
   private onEditorBlur(): void {
-    // Stop typing and save final state
     this.historyManager.stopTyping();
   }
 
@@ -351,7 +364,6 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
    * Handle editor click
    */
   private onEditorClick(): void {
-    // Clicks stop typing mode (navigation)
     this.historyManager.stopTyping();
     this.scheduleUIUpdate();
   }
@@ -416,10 +428,8 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
    * Called when any toolbar command is executed
    */
   onCommandExecuted(): void {
-    // Save snapshot before and after commands
     this.historyManager.saveBeforeCommand();
 
-    // Use setTimeout to capture state after command executes
     setTimeout(() => {
       this.historyManager.saveAfterCommand();
       this.updateContentFromEditor();
@@ -433,7 +443,6 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   private updateContentFromEditor(): void {
     if (!this.editor) return;
 
-    // Don't emit during restore operations
     if (this.historyManager.isRestoring()) return;
 
     this.content = this.trackChangesService.getContent(
@@ -454,7 +463,6 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(state => {
         this.trackChangesState = state;
-        // Don't call updateContentFromEditor during restore
         if (!this.historyManager.isRestoring()) {
           this.updateContentFromEditor();
         }
@@ -480,7 +488,6 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
       this.trackChangesService.enableTracking(this.editor.nativeElement);
     }
 
-    // Save snapshot after toggling track changes
     this.historyManager.save();
   }
 
@@ -594,7 +601,6 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
 
       this.editor.nativeElement.innerHTML = sanitized;
 
-      // Reset history when content is set programmatically
       this.historyManager.reset();
       this.historyManager.initialize();
 

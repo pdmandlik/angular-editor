@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
 import { Subscription } from 'rxjs';
-import { TrackChangesService } from 'src/app/services/track-changes.service';
+import { TrackChangesService } from 'src/app/services/track-changes';
 import { TrackChangesState } from 'src/app/entities/editor-config';
 
 @Component({
