@@ -1,7 +1,7 @@
 // Track Changes Tooltip Overlay
 .track-changes-tooltip-overlay {
   z-index: 1000;
-  
+
   .cdk-overlay-pane {
     pointer-events: none;
   }
@@ -11,7 +11,7 @@
 .tc-insert {
   cursor: help;
   transition: all 0.2s ease;
-  
+
   &:hover {
     background-color: rgba(0, 255, 0, 0.3) !important;
     box-shadow: 0 0 0 2px rgba(0, 255, 0, 0.4) !important;
@@ -21,9 +21,119 @@
 .tc-delete {
   cursor: help;
   transition: all 0.2s ease;
-  
+
   &:hover {
     background-color: rgba(255, 0, 0, 0.2) !important;
     box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.4) !important;
+  }
+
+  /* ============================================
+   TRACK CHANGES CONTEXT MENU - GLOBAL STYLES
+   Angular Material 13/14 (Legacy/Non-MDC)
+   
+   Add this to your styles.scss or app.component.scss
+   ============================================ */
+
+  /* Compact Track Changes Context Menu Panel */
+  .mat-menu-panel.tc-context-menu-panel,
+  .tc-context-menu .mat-menu-panel {
+    min-width: 140px !important;
+    max-width: 200px !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    overflow: hidden;
+  }
+
+  /* Compact menu content */
+  .tc-context-menu .mat-menu-content,
+  .tc-context-menu-panel .mat-menu-content {
+    padding: 4px 0 !important;
+  }
+
+  /* Compact menu items */
+  .tc-context-menu .mat-menu-item,
+  .tc-context-menu-panel .mat-menu-item,
+  .tc-menu-item.mat-menu-item {
+    height: 32px !important;
+    line-height: 32px !important;
+    padding: 0 12px !important;
+    font-size: 13px !important;
+
+    /* Compact icon spacing */
+    .mat-icon {
+      font-size: 18px !important;
+      width: 18px !important;
+      height: 18px !important;
+      margin-right: 8px !important;
+      vertical-align: middle;
+    }
+  }
+
+  /* Divider spacing */
+  .tc-context-menu .mat-divider,
+  .tc-context-menu-panel .mat-divider {
+    margin: 4px 0 !important;
+  }
+
+  /* Accept icon color */
+  .tc-accept-icon.mat-icon {
+    color: #4caf50 !important;
+  }
+
+  /* Reject icon color */
+  .tc-reject-icon.mat-icon {
+    color: #f44336 !important;
+  }
+
+  /* Menu header styling */
+  .tc-menu-header {
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+    color: #666;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    cursor: default;
+    background-color: #fafafa;
+    border-bottom: 1px solid #eee;
+
+    .tc-change-type {
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+
+      &.insert {
+        color: #2e7d32;
+      }
+
+      &.delete {
+        color: #c62828;
+      }
+    }
+
+    .tc-change-user {
+      font-size: 11px;
+      color: #888;
+    }
+  }
+
+  /* No changes message */
+  .tc-no-changes {
+    padding: 10px 12px !important;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #888;
+    font-size: 12px !important;
+    cursor: default;
+
+    mat-icon,
+    .mat-icon {
+      font-size: 16px !important;
+      width: 16px !important;
+      height: 16px !important;
+      color: #aaa;
+    }
   }
 }
