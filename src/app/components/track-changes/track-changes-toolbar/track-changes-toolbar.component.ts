@@ -5,11 +5,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
 import { Subscription } from 'rxjs';
-import { TrackChangesService } from 'src/app/services/track-changes.service';
+import { TrackChangesService } from 'src/app/services/track-changes';
 import { TrackChangesState } from 'src/app/entities/editor-config';
 
 @Component({
-  selector: 'app-track-changes-toolbar',
+  selector: 'ed-track-changes-toolbar',
   standalone: true,
   imports: [CommonModule, MatButtonModule, MatIconModule, MatTooltipModule, MatDividerModule],
   templateUrl: './track-changes-toolbar.component.html',

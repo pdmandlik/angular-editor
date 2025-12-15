@@ -12,7 +12,7 @@ interface TableDialogData {
 }
 
 @Component({
-  selector: 'app-table-dialog',
+  selector: 'ed-table-dialog',
   standalone: true,
   imports: [
     CommonModule,

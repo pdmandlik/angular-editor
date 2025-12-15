@@ -17,7 +17,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 
 @Component({
-  selector: 'app-image-upload-dialog',
+  selector: 'ed-image-upload-dialog',
   standalone: true,
   imports: [
     CommonModule,

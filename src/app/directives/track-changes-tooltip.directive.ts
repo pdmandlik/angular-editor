@@ -18,7 +18,26 @@ import { TooltipData } from '../entities/editor-config';
 })
 export class TrackChangesTooltipDirective implements OnInit, OnDestroy {
   private readonly MUTATION_BATCH_DELAY = 50;
-  
+
+  // FIXED: Use ICE.js/LITE standard attributes
+  private readonly attributes = {
+    changeId: 'data-cid',
+    userId: 'data-userid',
+    userName: 'data-username',
+    sessionId: 'data-session-id',
+    time: 'data-time',
+    lastTime: 'data-last-change-time',
+    changeData: 'data-changedata',
+    accepted: 'data-accepted',
+    rejected: 'data-rejected'
+  };
+
+  // FIXED: Use ICE.js/LITE standard classes
+  private readonly classes = {
+    insert: 'ice-ins',
+    delete: 'ice-del'
+  };
+
   private observer: MutationObserver | null = null;
   private tooltipDataMap = new Map<HTMLElement, TooltipData>();
   private mutationBatchTimer: any = null;
@@ -31,7 +50,7 @@ export class TrackChangesTooltipDirective implements OnInit, OnDestroy {
     private overlay: Overlay,
     private overlayPositionBuilder: OverlayPositionBuilder,
     private viewContainerRef: ViewContainerRef
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.initializeMutationObserver();
@@ -58,11 +77,11 @@ export class TrackChangesTooltipDirective implements OnInit, OnDestroy {
     this.ngZone.runOutsideAngular(() => {
       this.observer = new MutationObserver((mutations) => {
         this.pendingMutations.push(...mutations);
-        
+
         if (this.mutationBatchTimer) {
           clearTimeout(this.mutationBatchTimer);
         }
-        
+
         this.mutationBatchTimer = setTimeout(() => {
           this.ngZone.run(() => {
             this.processPendingMutations();
@@ -74,39 +93,43 @@ export class TrackChangesTooltipDirective implements OnInit, OnDestroy {
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ['data-change-id', 'data-accepted', 'data-rejected']
+        attributeFilter: [
+          this.attributes.changeId,
+          this.attributes.accepted,
+          this.attributes.rejected
+        ]
       });
     });
   }
 
   private processPendingMutations(): void {
     if (this.pendingMutations.length === 0) return;
-    
+
     const mutations = [...this.pendingMutations];
     this.pendingMutations = [];
     this.mutationBatchTimer = null;
-    
+
     const toRemove = new Set<HTMLElement>();
     const toAdd = new Set<HTMLElement>();
-    
+
     for (const mutation of mutations) {
       mutation.removedNodes.forEach(node => {
         if (node.nodeType === Node.ELEMENT_NODE) {
           toRemove.add(node as HTMLElement);
         }
       });
-      
+
       mutation.addedNodes.forEach(node => {
         if (node.nodeType === Node.ELEMENT_NODE) {
           toAdd.add(node as HTMLElement);
         }
       });
     }
-    
+
     toRemove.forEach(element => {
       this.cleanupElement(element);
     });
-    
+
     toAdd.forEach(element => {
       if (document.contains(element)) {
         this.processElement(element);
@@ -115,18 +138,20 @@ export class TrackChangesTooltipDirective implements OnInit, OnDestroy {
   }
 
   private processExistingSpans(): void {
-    const spans = this.elementRef.nativeElement.querySelectorAll('[data-change-id]');
+    // FIXED: Look for elements with data-cid attribute
+    const spans = this.elementRef.nativeElement.querySelectorAll(`[${this.attributes.changeId}]`);
     spans.forEach((span: HTMLElement) => {
       this.attachTooltipToSpan(span);
     });
   }
 
   private processElement(element: HTMLElement): void {
-    if (element.hasAttribute('data-change-id')) {
+    // FIXED: Check for data-cid attribute
+    if (element.hasAttribute(this.attributes.changeId)) {
       this.attachTooltipToSpan(element);
     }
 
-    const spans = element.querySelectorAll('[data-change-id]');
+    const spans = element.querySelectorAll(`[${this.attributes.changeId}]`);
     spans.forEach((span: HTMLElement) => {
       this.attachTooltipToSpan(span);
     });
@@ -139,7 +164,7 @@ export class TrackChangesTooltipDirective implements OnInit, OnDestroy {
       this.tooltipDataMap.delete(element);
     }
 
-    const spans = element.querySelectorAll('[data-change-id]');
+    const spans = element.querySelectorAll(`[${this.attributes.changeId}]`);
     spans.forEach((span: HTMLElement) => {
       if (this.tooltipDataMap.has(span)) {
         const data = this.tooltipDataMap.get(span)!;
@@ -150,10 +175,10 @@ export class TrackChangesTooltipDirective implements OnInit, OnDestroy {
   }
 
   private attachTooltipToSpan(span: HTMLElement): void {
-    if (this.tooltipDataMap.has(span) || 
-        !document.contains(span) ||
-        span.getAttribute('data-accepted') === 'true' || 
-        span.getAttribute('data-rejected') === 'true') {
+    if (this.tooltipDataMap.has(span) ||
+      !document.contains(span) ||
+      span.getAttribute(this.attributes.accepted) === 'true' ||
+      span.getAttribute(this.attributes.rejected) === 'true') {
       return;
     }
 
@@ -215,7 +240,7 @@ export class TrackChangesTooltipDirective implements OnInit, OnDestroy {
       TrackChangeTooltipComponent,
       this.viewContainerRef
     );
-    
+
     try {
       tooltipData.componentRef = tooltipData.overlayRef.attach(tooltipPortal);
       tooltipData.componentRef.instance.line1 = text.line1;
@@ -260,17 +285,28 @@ export class TrackChangesTooltipDirective implements OnInit, OnDestroy {
   }
 
   private generateTooltipText(span: HTMLElement): { line1: string; line2: string } | null {
-    const changeType = span.getAttribute('data-change-type');
-    const userName = span.getAttribute('data-user-name') || 'Unknown User';
-    const timestamp = span.getAttribute('data-timestamp');
-    const isAccepted = span.getAttribute('data-accepted') === 'true';
-    const isRejected = span.getAttribute('data-rejected') === 'true';
+    // FIXED: Determine change type from CSS class instead of data-change-type attribute
+    const changeType = this.getChangeType(span);
+
+    // FIXED: Use data-username instead of data-user-name
+    const userName = span.getAttribute(this.attributes.userName) || 'Unknown User';
+
+    // FIXED: Use data-time instead of data-timestamp
+    const timestamp = span.getAttribute(this.attributes.time);
+
+    const isAccepted = span.getAttribute(this.attributes.accepted) === 'true';
+    const isRejected = span.getAttribute(this.attributes.rejected) === 'true';
 
     if (!changeType || !timestamp) return null;
 
     let date: Date;
     try {
-      date = new Date(timestamp);
+      // FIXED: timestamp is in milliseconds as a string
+      const timestampNum = parseInt(timestamp, 10);
+      if (isNaN(timestampNum)) {
+        return null;
+      }
+      date = new Date(timestampNum);
       if (isNaN(date.getTime())) {
         return null;
       }
@@ -294,13 +330,23 @@ export class TrackChangesTooltipDirective implements OnInit, OnDestroy {
     };
   }
 
+  // FIXED: New method to determine change type from CSS class
+  private getChangeType(span: HTMLElement): 'insert' | 'delete' | null {
+    if (span.classList.contains(this.classes.insert)) {
+      return 'insert';
+    } else if (span.classList.contains(this.classes.delete)) {
+      return 'delete';
+    }
+    return null;
+  }
+
   private formatDate(date: Date): string {
     try {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      
+
       const inputDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
       if (inputDate.getTime() === today.getTime()) {

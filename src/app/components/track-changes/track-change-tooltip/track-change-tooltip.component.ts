@@ -2,7 +2,7 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-track-change-tooltip',
+  selector: 'ed-track-change-tooltip',
   standalone: true,
   imports: [CommonModule],
   template: `
