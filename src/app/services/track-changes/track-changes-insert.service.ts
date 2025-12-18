@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { TrackChangesStateService } from './track-changes-state.service';
 import { TrackChangesNodeService } from './track-changes-node.service';
 import { TrackChangesDomService } from './track-changes-dom.service';
-import { IceNode, CHANGE_TYPES, ICE_ATTRIBUTES } from './track-changes.constants';
+import { IceNode, CHANGE_TYPES, ICE_ATTRIBUTES, ICE_CLASSES } from './track-changes.constants';
 import { ChangeRecord } from '../../entities/editor-config';
 
 export interface InsertOptions {
@@ -29,6 +29,11 @@ export class TrackChangesInsertService {
             range = selection.getRangeAt(0);
         }
 
+        // CRITICAL FIX: Move cursor outside of any delete node before inserting
+        // This mirrors ice.js _moveRangeToValidTrackingPos behavior
+        // Delete nodes are "void" elements - we cannot insert content inside them
+        this.moveRangeToValidTrackingPos(range, selection);
+
         const changeId = this.stateService.startBatchChange() ||
             this.stateService.getBatchChangeId() ||
             this.stateService.getNewChangeId();
@@ -54,6 +59,40 @@ export class TrackChangesInsertService {
 
         // CASE 3: Create new insert node
         this.createNewInsertNode(changeId, range, selection, options);
+    }
+
+    /**
+     * Move range outside of delete nodes before inserting.
+     * Delete nodes are "void" elements for tracking purposes - we cannot insert inside them.
+     * If the cursor is inside a delete node, we need to move it outside (after) the delete node.
+     * This mirrors ice.js _moveRangeToValidTrackingPos behavior.
+     */
+    private moveRangeToValidTrackingPos(range: Range, selection: Selection): void {
+        const editorEl = this.stateService.getEditorElement();
+        if (!editorEl) return;
+
+        // Check if we're inside a delete node by walking up the DOM tree
+        let current: Node | null = range.startContainer;
+        let deleteNode: HTMLElement | null = null;
+
+        while (current && current !== editorEl) {
+            if (current.nodeType === Node.ELEMENT_NODE) {
+                const elem = current as HTMLElement;
+                if (elem.classList.contains(ICE_CLASSES.delete)) {
+                    deleteNode = elem;
+                    break;
+                }
+            }
+            current = current.parentNode;
+        }
+
+        // If we found a delete node ancestor, move cursor after it
+        if (deleteNode) {
+            range.setStartAfter(deleteNode);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
     }
 
     private insertIntoExistingNode(

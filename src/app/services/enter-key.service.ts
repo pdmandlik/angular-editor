@@ -4,6 +4,9 @@ import { EnterMode, DEFAULT_EDITOR_CONFIG } from '../entities/editor-config';
 /**
  * Service to handle Enter and Shift+Enter key behavior in the editor.
  * Mimics CKEditor 4's enterMode and shiftEnterMode configuration.
+ * 
+ * FIXED: Now properly handles Enter key inside list items (UL/OL)
+ * by creating new LI elements instead of P/DIV elements.
  */
 @Injectable({
     providedIn: 'root'
@@ -13,47 +16,29 @@ export class EnterKeyService {
     private shiftEnterMode: EnterMode = DEFAULT_EDITOR_CONFIG.shiftEnterMode;
     private editorElement: HTMLElement | null = null;
 
-    /**
-     * Configure the Enter key modes
-     */
     configure(enterMode: EnterMode, shiftEnterMode: EnterMode): void {
         this.enterMode = enterMode;
         this.shiftEnterMode = shiftEnterMode;
     }
 
-    /**
-     * Set the editor element reference
-     */
     setEditorElement(element: HTMLElement): void {
         this.editorElement = element;
     }
 
-    /**
-     * Get current Enter mode
-     */
     getEnterMode(): EnterMode {
         return this.enterMode;
     }
 
-    /**
-     * Get current Shift+Enter mode
-     */
     getShiftEnterMode(): EnterMode {
         return this.shiftEnterMode;
     }
 
-    /**
-     * Get the block element tag name for the current enter mode
-     */
     getBlockTagForMode(mode: EnterMode): string {
         switch (mode) {
-            case EnterMode.ENTER_P:
-                return 'p';
-            case EnterMode.ENTER_DIV:
-                return 'div';
+            case EnterMode.ENTER_P: return 'p';
+            case EnterMode.ENTER_DIV: return 'div';
             case EnterMode.ENTER_BR:
-            default:
-                return 'br';
+            default: return 'br';
         }
     }
 
@@ -74,11 +59,94 @@ export class EnterKeyService {
             range.deleteContents();
         }
 
+        // Check if we're inside a list item - this takes priority
+        const listItem = this.findClosestListItem(range.startContainer);
+        if (listItem) {
+            return this.splitListItem(range, selection, listItem);
+        }
+
         if (mode === EnterMode.ENTER_BR) {
             return this.insertLineBreak(range, selection);
         } else {
             return this.splitBlock(range, selection, mode);
         }
+    }
+
+    /**
+     * Find the closest LI ancestor element
+     */
+    private findClosestListItem(node: Node): HTMLElement | null {
+        let current: Node | null = node;
+
+        while (current && current !== this.editorElement) {
+            if (current.nodeType === Node.ELEMENT_NODE) {
+                const element = current as HTMLElement;
+                if (element.tagName === 'LI') {
+                    return element;
+                }
+            }
+            current = current.parentNode;
+        }
+
+        return null;
+    }
+
+    /**
+     * Split a list item at the cursor position, creating a new LI
+     * This is the KEY fix for bullet/numbered list Enter key behavior
+     */
+    private splitListItem(range: Range, selection: Selection, listItem: HTMLElement): boolean {
+        const parentList = listItem.parentElement;
+        if (!parentList || (parentList.tagName !== 'UL' && parentList.tagName !== 'OL')) {
+            return false;
+        }
+
+        // Create range from cursor to end of list item
+        const endRange = document.createRange();
+        endRange.setStart(range.startContainer, range.startOffset);
+
+        if (listItem.lastChild) {
+            if (listItem.lastChild.nodeType === Node.TEXT_NODE) {
+                endRange.setEnd(listItem.lastChild, (listItem.lastChild as Text).length);
+            } else {
+                endRange.setEndAfter(listItem.lastChild);
+            }
+        } else {
+            endRange.setEnd(listItem, 0);
+        }
+
+        // Extract content after cursor
+        const afterContent = endRange.extractContents();
+
+        // Create new list item
+        const newListItem = document.createElement('li');
+
+        // Add content to new list item or BR placeholder if empty
+        if (afterContent.childNodes.length > 0 && this.hasVisibleContent(afterContent)) {
+            newListItem.appendChild(afterContent);
+        } else {
+            newListItem.appendChild(document.createElement('br'));
+        }
+
+        // If original list item is now empty, add a BR
+        if (!this.hasVisibleContent(listItem)) {
+            while (listItem.firstChild) {
+                listItem.removeChild(listItem.firstChild);
+            }
+            listItem.appendChild(document.createElement('br'));
+        }
+
+        // Insert new list item after current one
+        if (listItem.nextSibling) {
+            parentList.insertBefore(newListItem, listItem.nextSibling);
+        } else {
+            parentList.appendChild(newListItem);
+        }
+
+        // Position cursor at start of new list item
+        this.placeCursorInBlock(newListItem, selection);
+
+        return true;
     }
 
     /**
@@ -88,22 +156,17 @@ export class EnterKeyService {
         const br = document.createElement('br');
         range.insertNode(br);
 
-        // Create a new range after the BR
         const newRange = document.createRange();
-
-        // Check what comes after the BR
         const nextSibling = br.nextSibling;
 
         if (!nextSibling ||
             (nextSibling.nodeType === Node.TEXT_NODE && !nextSibling.textContent?.trim()) ||
             (nextSibling.nodeType === Node.ELEMENT_NODE && (nextSibling as HTMLElement).tagName === 'BR')) {
-            // At end of block or followed by empty content - need a second BR for cursor
             const spacerBr = document.createElement('br');
             br.parentNode?.insertBefore(spacerBr, br.nextSibling);
             newRange.setStartAfter(br);
             newRange.setEndAfter(br);
         } else {
-            // There's content after - position cursor at start of next content
             if (nextSibling.nodeType === Node.TEXT_NODE) {
                 newRange.setStart(nextSibling, 0);
                 newRange.setEnd(nextSibling, 0);
@@ -115,7 +178,6 @@ export class EnterKeyService {
 
         selection.removeAllRanges();
         selection.addRange(newRange);
-
         return true;
     }
 
@@ -124,8 +186,6 @@ export class EnterKeyService {
      */
     private splitBlock(range: Range, selection: Selection, mode: EnterMode): boolean {
         const tagName = mode === EnterMode.ENTER_P ? 'p' : 'div';
-
-        // Find the closest block element
         const blockElement = this.findClosestBlock(range.startContainer);
 
         if (blockElement && this.editorElement?.contains(blockElement)) {
@@ -136,11 +196,12 @@ export class EnterKeyService {
     }
 
     /**
-     * Find the closest block-level ancestor
+     * Find the closest block-level ancestor (excluding LI - handled separately)
      */
     private findClosestBlock(node: Node): HTMLElement | null {
+        // Note: LI is NOT in this list - it's handled by findClosestListItem
         const blockTags = ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
-            'LI', 'TD', 'TH', 'BLOCKQUOTE', 'PRE', 'ADDRESS'];
+            'TD', 'TH', 'BLOCKQUOTE', 'PRE', 'ADDRESS'];
 
         let current: Node | null = node;
 
@@ -166,11 +227,9 @@ export class EnterKeyService {
         blockElement: HTMLElement,
         tagName: string
     ): boolean {
-        // Create a range from cursor to end of block
         const endRange = document.createRange();
         endRange.setStart(range.startContainer, range.startOffset);
 
-        // Set end to the last child of block element
         if (blockElement.lastChild) {
             if (blockElement.lastChild.nodeType === Node.TEXT_NODE) {
                 endRange.setEnd(blockElement.lastChild, (blockElement.lastChild as Text).length);
@@ -181,39 +240,29 @@ export class EnterKeyService {
             endRange.setEnd(blockElement, 0);
         }
 
-        // Extract content after cursor
         const afterContent = endRange.extractContents();
-
-        // Create new block element
         const newBlock = document.createElement(tagName);
 
-        // Add content to new block or a BR placeholder if empty
         if (afterContent.childNodes.length > 0 && this.hasVisibleContent(afterContent)) {
             newBlock.appendChild(afterContent);
         } else {
-            // Empty new block - add BR for cursor positioning
             newBlock.appendChild(document.createElement('br'));
         }
 
-        // If original block is now empty, add a BR
         if (!this.hasVisibleContent(blockElement)) {
-            // Clear any empty text nodes
             while (blockElement.firstChild) {
                 blockElement.removeChild(blockElement.firstChild);
             }
             blockElement.appendChild(document.createElement('br'));
         }
 
-        // Insert new block after current block
         if (blockElement.nextSibling) {
             blockElement.parentNode?.insertBefore(newBlock, blockElement.nextSibling);
         } else {
             blockElement.parentNode?.appendChild(newBlock);
         }
 
-        // CRITICAL: Position cursor at the START of the new block
         this.placeCursorInBlock(newBlock, selection);
-
         return true;
     }
 
@@ -223,24 +272,21 @@ export class EnterKeyService {
     private createNewBlock(range: Range, selection: Selection, tagName: string): boolean {
         if (!this.editorElement) return false;
 
-        // Get all content before cursor
         const beforeRange = document.createRange();
         beforeRange.setStart(this.editorElement, 0);
         beforeRange.setEnd(range.startContainer, range.startOffset);
 
-        // Get all content after cursor
         const afterRange = document.createRange();
         afterRange.setStart(range.startContainer, range.startOffset);
-        afterRange.setEnd(this.editorElement, this.editorElement.childNodes.length);
+        afterRange.setEndAfter(this.editorElement.lastChild || this.editorElement);
 
-        // Extract content
-        const afterContent = afterRange.extractContents();
         const beforeContent = beforeRange.extractContents();
+        const afterContent = afterRange.extractContents();
 
-        // Clear editor
-        this.editorElement.innerHTML = '';
+        while (this.editorElement.firstChild) {
+            this.editorElement.removeChild(this.editorElement.firstChild);
+        }
 
-        // Create first block with content before cursor
         const firstBlock = document.createElement(tagName);
         if (beforeContent.childNodes.length > 0 && this.hasVisibleContent(beforeContent)) {
             firstBlock.appendChild(beforeContent);
@@ -248,7 +294,6 @@ export class EnterKeyService {
             firstBlock.appendChild(document.createElement('br'));
         }
 
-        // Create second block with content after cursor
         const secondBlock = document.createElement(tagName);
         if (afterContent.childNodes.length > 0 && this.hasVisibleContent(afterContent)) {
             secondBlock.appendChild(afterContent);
@@ -256,34 +301,28 @@ export class EnterKeyService {
             secondBlock.appendChild(document.createElement('br'));
         }
 
-        // Append both blocks
         this.editorElement.appendChild(firstBlock);
         this.editorElement.appendChild(secondBlock);
 
-        // Position cursor at start of second block
         this.placeCursorInBlock(secondBlock, selection);
-
         return true;
     }
 
     /**
-     * Check if a node/fragment has visible content
+     * Check if node has visible content
      */
-    private hasVisibleContent(node: Node | DocumentFragment): boolean {
+    private hasVisibleContent(node: Node): boolean {
         if (node.nodeType === Node.TEXT_NODE) {
             return !!(node.textContent && node.textContent.trim());
         }
 
         if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE || node.nodeType === Node.ELEMENT_NODE) {
-            // Check for BR - a lone BR is not considered "visible content" for our purposes
             const element = node as HTMLElement | DocumentFragment;
 
-            // Check text content
             if (element.textContent && element.textContent.trim()) {
                 return true;
             }
 
-            // Check for images or other non-text visible elements
             if ('querySelector' in element) {
                 if (element.querySelector('img, table, hr')) {
                     return true;
@@ -298,62 +337,49 @@ export class EnterKeyService {
 
     /**
      * Place cursor at the beginning of a block element
-     * This is the CRITICAL fix - ensuring cursor is properly inside the new block
      */
     private placeCursorInBlock(block: HTMLElement, selection: Selection): void {
         const newRange = document.createRange();
-
-        // Focus the editor first
         this.editorElement?.focus();
 
-        // Find the first suitable position for the cursor
         const firstChild = block.firstChild;
 
         if (!firstChild) {
-            // Empty block - position at start
             newRange.setStart(block, 0);
             newRange.setEnd(block, 0);
         } else if (firstChild.nodeType === Node.TEXT_NODE) {
-            // Text node - position at start of text
             newRange.setStart(firstChild, 0);
             newRange.setEnd(firstChild, 0);
         } else if (firstChild.nodeType === Node.ELEMENT_NODE) {
             const firstElement = firstChild as HTMLElement;
 
             if (firstElement.tagName === 'BR') {
-                // BR element - position before it
                 newRange.setStartBefore(firstElement);
                 newRange.setEndBefore(firstElement);
             } else {
-                // Other element - try to find first text node inside it
                 const textNode = this.findFirstTextNode(firstElement);
                 if (textNode) {
                     newRange.setStart(textNode, 0);
                     newRange.setEnd(textNode, 0);
                 } else {
-                    // No text node found - position at start of element
                     newRange.setStart(firstElement, 0);
                     newRange.setEnd(firstElement, 0);
                 }
             }
         } else {
-            // Default - position at start of block
             newRange.setStart(block, 0);
             newRange.setEnd(block, 0);
         }
 
-        // Apply the new selection
         selection.removeAllRanges();
         selection.addRange(newRange);
 
-        // Double-check: ensure selection is in the correct block
-        // This helps with some browser quirks
+        // Ensure selection is in correct block (browser quirk fix)
         setTimeout(() => {
             const currentSelection = window.getSelection();
             if (currentSelection && currentSelection.rangeCount > 0) {
                 const currentRange = currentSelection.getRangeAt(0);
                 if (!block.contains(currentRange.startContainer)) {
-                    // Selection escaped - force it back
                     currentSelection.removeAllRanges();
                     currentSelection.addRange(newRange);
                 }
@@ -362,49 +388,41 @@ export class EnterKeyService {
     }
 
     /**
-     * Find the first text node within an element (recursive)
+     * Find first text node within an element
      */
     private findFirstTextNode(element: HTMLElement): Text | null {
-        for (let i = 0; i < element.childNodes.length; i++) {
-            const child = element.childNodes[i];
-
-            if (child.nodeType === Node.TEXT_NODE && child.textContent) {
-                return child as Text;
-            }
-
-            if (child.nodeType === Node.ELEMENT_NODE) {
-                const found = this.findFirstTextNode(child as HTMLElement);
-                if (found) return found;
-            }
-        }
-
-        return null;
+        const walker = document.createTreeWalker(
+            element,
+            NodeFilter.SHOW_TEXT,
+            null
+        );
+        return walker.nextNode() as Text | null;
     }
 
     /**
-     * Ensure editor has proper initial block structure based on enter mode
+     * Ensure editor has proper initial block structure
+     * (Also aliased as ensureProperStructure for backward compatibility)
      */
     ensureProperStructure(): void {
+        this.ensureEditorHasBlocks();
+    }
+
+    /**
+     * Ensure editor has proper initial block structure
+     */
+    ensureEditorHasBlocks(): void {
         if (!this.editorElement) return;
 
-        // Only apply for P and DIV modes
-        if (this.enterMode === EnterMode.ENTER_BR) return;
-
         const tagName = this.getBlockTagForMode(this.enterMode);
+        if (tagName === 'br') return;
 
-        // If editor is empty, add a block with BR
-        if (!this.editorElement.hasChildNodes() ||
-            (this.editorElement.childNodes.length === 1 &&
-                this.editorElement.firstChild?.nodeType === Node.TEXT_NODE &&
-                !this.editorElement.textContent?.trim())) {
-            this.editorElement.innerHTML = '';
+        if (!this.editorElement.innerHTML.trim()) {
             const block = document.createElement(tagName);
             block.appendChild(document.createElement('br'));
             this.editorElement.appendChild(block);
             return;
         }
 
-        // Check if there are orphan text nodes or inline elements at root level
         const childNodes = Array.from(this.editorElement.childNodes);
         let hasOrphanContent = false;
         let hasBlockChildren = false;
@@ -419,13 +437,11 @@ export class EnterKeyService {
                 if (blockTags.includes(el.tagName)) {
                     hasBlockChildren = true;
                 } else {
-                    // Inline element at root level
                     hasOrphanContent = true;
                 }
             }
         }
 
-        // Only wrap if there's orphan content and no block children
         if (hasOrphanContent && !hasBlockChildren) {
             const fragment = document.createDocumentFragment();
             while (this.editorElement.firstChild) {
