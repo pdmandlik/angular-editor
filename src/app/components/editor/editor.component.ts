@@ -233,19 +233,37 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * Toggles track changes on/off.
-   */
-  onToggleTrackChanges(): void {
-    const { isEnabled, pendingCount } = this.trackChangesState;
+ * Toggles track changes on/off.
+ *
+ * Matches CKEditor 4 Lite plugin behavior:
+ * - If there are pending changes, user MUST resolve them before disabling
+ * - Shows alert (not confirm) to inform user they need to resolve changes first
+ * - Optional force parameter bypasses the pending changes check (for programmatic use)
+ *
+ * // Normal usage (from toolbar button) - respects pending changes check:
+   // this.onToggleTrackChanges();
 
-    if (isEnabled && pendingCount > 0) {
-      const confirmed = window.confirm(
-        `There are ${pendingCount} pending changes. ` +
-        `Disabling will keep them but stop tracking new changes. Continue?`
+   // Programmatic usage - force disable even with pending changes:
+   // this.onToggleTrackChanges({ force: true });
+ *
+ * @param options Optional configuration
+ * @param options.force If true, skip pending changes check and force toggle
+ */
+  onToggleTrackChanges(options?: { force?: boolean }): void {
+    const { isEnabled, pendingCount } = this.trackChangesState;
+    const force = options?.force ?? false;
+
+    // If tracking is enabled and there are pending changes (and not forced),
+    // block disabling and show alert (matching CKEditor Lite plugin behavior)
+    if (isEnabled && pendingCount > 0 && !force) {
+      window.alert(
+        'Your document contains some pending changes.\n' +
+        'Please resolve them before turning off change tracking.'
       );
-      if (!confirmed) return;
+      return; // Do NOT proceed - user must accept/reject changes first
     }
 
+    // Toggle tracking state
     if (isEnabled) {
       this.trackChangesService.disableTracking();
     } else {

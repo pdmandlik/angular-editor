@@ -17,6 +17,7 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 import { HistoryManagerService } from './history-manager.service';
 import { EnterKeyService } from './enter-key.service';
+import { TrackChangesStateService } from './track-changes';
 
 /** Event types emitted by the service */
 export interface EditorKeyboardEvent {
@@ -68,7 +69,7 @@ export class EditorEventsService implements OnDestroy {
 
     constructor(
         private historyManager: HistoryManagerService,
-        private enterKeyService: EnterKeyService
+        private trackChangesStateService: TrackChangesStateService
     ) { }
 
     ngOnDestroy(): void {
@@ -318,10 +319,18 @@ export class EditorEventsService implements OnDestroy {
         const event = e as MouseEvent;
         const target = event.target as HTMLElement;
 
+        const shouldShowCustomMenu = this.shouldShowCustomContextMenu(target);
+
+        // Prevent default browser context menu when showing custom menu
+        if (shouldShowCustomMenu) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
         this.contextMenuEvent$.next({
             position: { x: event.clientX, y: event.clientY },
             target,
-            shouldShowCustomMenu: this.shouldShowCustomContextMenu(target)
+            shouldShowCustomMenu
         });
     }
 
@@ -374,6 +383,12 @@ export class EditorEventsService implements OnDestroy {
                 return true;
             }
             current = current.parentElement;
+        }
+
+        // Check if there are any pending changes (for Accept/Reject All)
+        const state = this.trackChangesStateService.getCurrentState();
+        if (state.isEnabled && state.pendingCount > 0) {
+            return true;
         }
 
         return false;

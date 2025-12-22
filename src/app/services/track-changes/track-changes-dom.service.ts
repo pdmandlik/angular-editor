@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { TrackChangesStateService } from './track-changes-state.service';
-import { ICE_CLASSES, BLOCK_ELEMENTS, BLOCK_OR_BREAK_ELEMENTS } from './track-changes.constants';
+import { ICE_CLASSES, BLOCK_ELEMENTS, BLOCK_OR_BREAK_ELEMENTS, DELETE_STYLES, INSERT_STYLES } from './track-changes.constants';
 import { EditorOutputMode } from '../../entities/editor-config';
 
 /**
@@ -295,8 +295,16 @@ export class TrackChangesDomService {
     // ============================================================================
 
     /**
-     * Toggle visibility of track change nodes
-     */
+    * Toggle visibility of track change nodes
+    * 
+    * When hiding changes:
+    * - DELETE nodes: hidden completely (display: none)
+    * - INSERT nodes: content remains visible but highlighting is removed
+    * 
+    * When showing changes:
+    * - DELETE nodes: shown with strikethrough styling
+    * - INSERT nodes: shown with green highlight styling
+    */
     toggleNodesVisibility(visible: boolean): void {
         const editorEl = this.stateService.getEditorElement();
         if (!editorEl) return;
@@ -307,10 +315,30 @@ export class TrackChangesDomService {
 
         iceNodes.forEach((node: Element) => {
             const element = node as HTMLElement;
-            if (visible) {
-                element.style.removeProperty('display');
-            } else if (element.classList.contains(ICE_CLASSES.delete)) {
-                element.style.display = 'none';
+
+            if (element.classList.contains(ICE_CLASSES.delete)) {
+                // DELETE nodes: toggle display
+                if (visible) {
+                    // Show with delete styling
+                    element.style.removeProperty('display');
+                    element.style.backgroundColor = DELETE_STYLES.backgroundColor;
+                    element.style.textDecoration = DELETE_STYLES.textDecoration;
+                    element.style.color = DELETE_STYLES.color;
+                } else {
+                    // Hide completely
+                    element.style.display = 'none';
+                }
+            } else if (element.classList.contains(ICE_CLASSES.insert)) {
+                // INSERT nodes: toggle highlighting (content always visible)
+                if (visible) {
+                    // Show with insert styling (green highlight)
+                    element.style.backgroundColor = INSERT_STYLES.backgroundColor;
+                    element.style.textDecoration = INSERT_STYLES.textDecoration;
+                } else {
+                    // Hide highlighting but keep content visible
+                    element.style.backgroundColor = 'transparent';
+                    element.style.textDecoration = 'none';
+                }
             }
         });
     }

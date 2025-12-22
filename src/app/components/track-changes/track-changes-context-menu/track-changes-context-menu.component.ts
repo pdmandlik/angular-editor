@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
+import { Subject, takeUntil } from 'rxjs';
+import { TrackChangesStateService } from 'src/app/services/track-changes';
 
 /**
  * Context menu data passed when opening the menu
@@ -239,6 +241,7 @@ export interface TrackChangesContextMenuData {
     `]
 })
 export class TrackChangesContextMenuComponent {
+    private destroy$ = new Subject<void>();
     @ViewChild('menuTrigger', { static: true }) menuTrigger!: MatMenuTrigger;
 
     @Output() acceptCurrent = new EventEmitter<string>();
@@ -248,6 +251,22 @@ export class TrackChangesContextMenuComponent {
 
     menuPosition = { x: 0, y: 0 };
     contextData: TrackChangesContextMenuData | null = null;
+
+    constructor(private stateService: TrackChangesStateService) { }
+
+    ngAfterViewInit(): void {
+        this.menuTrigger.menuClosed
+            .pipe(takeUntil(this.destroy$))
+            .subscribe(() => {
+                // Directly focus editor - no event emission needed
+                this.stateService.getEditorElement()?.focus();
+            });
+    }
+
+    ngOnDestroy(): void {
+        this.destroy$.next();
+        this.destroy$.complete();
+    }
 
     /**
      * Open the context menu at the specified position
