@@ -24,7 +24,7 @@
   <mat-divider vertical></mat-divider>
 
   <!-- Table Group -->
-  <ed-table-toolbar (commandExecuted)="onCommandExecuted()">
+  <ed-table-toolbar #tableToolbar (commandExecuted)="onCommandExecuted()">
   </ed-table-toolbar>
 
   <!-- Image Group -->
@@ -38,33 +38,24 @@
   </ed-line-height-toolbar>
 
   <!-- Track Changes Toolbar -->
-  <ed-track-changes-toolbar 
-    [visible]="trackChangesVisible" 
-    (toggleTracking)="onToggleTrackChanges()"
-    (toggleShow)="onTrackChangesShow($event)" 
-    (acceptAll)="onAcceptAllChanges()" 
-    (rejectAll)="onRejectAllChanges()"
-    (acceptOne)="onAcceptOneChange()" 
-    (rejectOne)="onRejectOneChange()">
+  <ed-track-changes-toolbar [visible]="trackChangesVisible" (toggleTracking)="onToggleTrackChanges()"
+    (toggleShow)="onTrackChangesShow($event)" (acceptAll)="onAcceptAllChanges()" (rejectAll)="onRejectAllChanges()"
+    (acceptOne)="onAcceptOneChange()" (rejectOne)="onRejectOneChange()">
   </ed-track-changes-toolbar>
 </mat-toolbar>
 
 <!-- Editor Content Area -->
-<div 
-  #editor 
-  contenteditable="true" 
-  appTrackChangesTooltip 
-  [attr.data-placeholder]="placeholder" 
-  [style.height]="height"
+<div #editor contenteditable="true" appTrackChangesTooltip [attr.data-placeholder]="placeholder" [style.height]="height"
   class="wysiwyg-editor"
   style="padding: 16px; border: 1px solid #ccc; border-radius: 4px; margin-top: 8px; outline: none; overflow-y: auto;">
 </div>
 
 <!-- Track Changes Context Menu (right-click menu) -->
-<ed-track-changes-context-menu 
-  #trackChangesContextMenu
-  (acceptCurrent)="onContextMenuAcceptCurrent($event)"
-  (rejectCurrent)="onContextMenuRejectCurrent($event)"
-  (acceptAll)="onContextMenuAcceptAll()"
+<ed-track-changes-context-menu #trackChangesContextMenu (acceptCurrent)="onContextMenuAcceptCurrent($event)"
+  (rejectCurrent)="onContextMenuRejectCurrent($event)" (acceptAll)="onContextMenuAcceptAll()"
   (rejectAll)="onContextMenuRejectAll()">
 </ed-track-changes-context-menu>
+
+<!-- Table Context Menu (right-click menu for tables) -->
+<ed-table-context-menu #tableContextMenu (actionExecuted)="onTableContextAction($event)">
+</ed-table-context-menu>

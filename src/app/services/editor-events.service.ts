@@ -41,6 +41,7 @@ export interface EditorContextMenuEvent {
     position: { x: number; y: number };
     target: HTMLElement;
     shouldShowCustomMenu: boolean;
+    menuType: 'trackChanges' | 'table' | null;
 }
 
 /** Navigation keys that don't trigger content changes */
@@ -319,10 +320,10 @@ export class EditorEventsService implements OnDestroy {
         const event = e as MouseEvent;
         const target = event.target as HTMLElement;
 
-        const shouldShowCustomMenu = this.shouldShowCustomContextMenu(target);
+        const result = this.shouldShowCustomContextMenu(target);
 
         // Prevent default browser context menu when showing custom menu
-        if (shouldShowCustomMenu) {
+        if (result.show) {
             event.preventDefault();
             event.stopPropagation();
         }
@@ -330,7 +331,8 @@ export class EditorEventsService implements OnDestroy {
         this.contextMenuEvent$.next({
             position: { x: event.clientX, y: event.clientY },
             target,
-            shouldShowCustomMenu
+            shouldShowCustomMenu: result.show,
+            menuType: result.type
         });
     }
 
@@ -372,25 +374,31 @@ export class EditorEventsService implements OnDestroy {
         });
     }
 
-    private shouldShowCustomContextMenu(target: HTMLElement): boolean {
-        if (!this.editorElement) return false;
+    private shouldShowCustomContextMenu(target: HTMLElement): { show: boolean; type: 'trackChanges' | 'table' | null } {
+        if (!this.editorElement) return { show: false, type: null };
 
-        // Check if clicking on a track changes node
         let current: HTMLElement | null = target;
+
         while (current && current !== this.editorElement) {
-            if (current.classList?.contains('ice-ins') ||
-                current.classList?.contains('ice-del')) {
-                return true;
+            // Check for table cell FIRST
+            if (current.tagName === 'TD' || current.tagName === 'TH') {
+                return { show: true, type: 'table' };
             }
+
+            // Check for track changes node
+            if (current.classList?.contains('ice-ins') || current.classList?.contains('ice-del')) {
+                return { show: true, type: 'trackChanges' };
+            }
+
             current = current.parentElement;
         }
 
         // Check if there are any pending changes (for Accept/Reject All)
         const state = this.trackChangesStateService.getCurrentState();
         if (state.isEnabled && state.pendingCount > 0) {
-            return true;
+            return { show: true, type: 'trackChanges' };
         }
 
-        return false;
+        return { show: false, type: null };
     }
 }

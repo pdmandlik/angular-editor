@@ -38,6 +38,7 @@ import { ImageToolbarComponent } from '../editor-toolbar/image-toolbar/image-too
 import { LineHeightToolbarComponent } from '../editor-toolbar/line-height-toolbar/line-height-toolbar.component';
 import { TrackChangesToolbarComponent } from '../track-changes/track-changes-toolbar/track-changes-toolbar.component';
 import { TrackChangesContextMenuComponent } from '../track-changes/track-changes-context-menu/track-changes-context-menu.component';
+import { TableContextMenuComponent, TableContextAction } from '../editor-toolbar/table-toolbar/table-context-menu.component';
 
 // Directives
 import { TrackChangesTooltipDirective } from 'src/app/directives/track-changes-tooltip.directive';
@@ -51,6 +52,7 @@ import { TrackChangesContextMenuService } from 'src/app/services/track-changes/t
 import { HistoryManagerService } from 'src/app/services/history-manager.service';
 import { EnterKeyService } from 'src/app/services/enter-key.service';
 import { EditorEventsService } from 'src/app/services/editor-events.service';
+import { TableOperationsService, TableSelectionService } from 'src/app/services/table';
 
 // Types
 import {
@@ -79,7 +81,8 @@ const CONTENT_DEBOUNCE_MS = 300;
     LineHeightToolbarComponent,
     TrackChangesToolbarComponent,
     TrackChangesContextMenuComponent,
-    TrackChangesTooltipDirective
+    TrackChangesTooltipDirective,
+    TableContextMenuComponent
   ],
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss'],
@@ -95,6 +98,8 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('lineHeightToolbar') lineHeightToolbar!: LineHeightToolbarComponent;
   @ViewChild('historyToolbar') historyToolbar!: HistoryToolbarComponent;
   @ViewChild('trackChangesContextMenu') trackChangesContextMenu!: TrackChangesContextMenuComponent;
+  @ViewChild('tableToolbar') tableToolbar!: TableToolbarComponent;
+  @ViewChild('tableContextMenu') tableContextMenu!: TableContextMenuComponent;
 
   // ========================================================================
   // INPUTS
@@ -159,7 +164,9 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     public trackChangesService: TrackChangesService,
     private contextMenuService: TrackChangesContextMenuService,
     public historyManager: HistoryManagerService,
-    private enterKeyService: EnterKeyService
+    private enterKeyService: EnterKeyService,
+    private tableOps: TableOperationsService,
+    private tableSelection: TableSelectionService
   ) { }
 
   // ========================================================================
@@ -181,6 +188,8 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     this.setInitialContent(editorEl);
     this.initializeEventHandling(editorEl);
     this.subscribeToTrackChangesState();
+    this.tableOps.setEditorElement(editorEl);
+    this.tableSelection.attach(editorEl);
 
     // Initial toolbar state update
     setTimeout(() => this.updateToolbarStates(), 0);
@@ -190,6 +199,7 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     this.eventsService.destroy();
+    this.tableSelection.detach();
   }
 
   // ========================================================================
@@ -380,6 +390,22 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ========================================================================
+  // TABLE CONTEXT MENU HANDLERS
+  // ========================================================================
+
+  /**
+   * Handle table context menu action
+   */
+  onTableContextAction(action: TableContextAction): void {
+    if (action === 'tableProperties') {
+      this.tableToolbar?.openTableProperties();
+    } else if (action === 'cellProperties') {
+      this.tableToolbar?.openCellProperties();
+    }
+    this.onCommandExecuted();
+  }
+
+  // ========================================================================
   // PRIVATE - INITIALIZATION
   // ========================================================================
 
@@ -487,6 +513,7 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     this.textFormattingToolbar?.updateState();
     this.lineHeightToolbar?.updateState();
     this.historyToolbar?.updateState();
+    this.tableToolbar?.updateState();
   }
 
   private onAfterUndoRedo(): void {
@@ -501,14 +528,55 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     this.emitContentChange();
   }
 
-  private handleContextMenu(event: { position: { x: number; y: number }; target: HTMLElement; shouldShowCustomMenu: boolean }): void {
+  private handleContextMenu(event: {
+    position: { x: number; y: number };
+    target: HTMLElement;
+    shouldShowCustomMenu: boolean;
+    menuType?: 'trackChanges' | 'table' | null;
+  }): void {
     if (!event.shouldShowCustomMenu) return;
 
-    const contextData = this.contextMenuService.getContextMenuData(event.target);
-    this.trackChangesContextMenu?.openMenu(
-      event.position.x,
-      event.position.y,
-      contextData
-    );
+    // Determine menu type if not provided
+    const menuType = event.menuType ?? this.determineMenuType(event.target);
+
+    if (menuType === 'table') {
+      this.tableContextMenu?.open(event.position.x, event.position.y);
+    } else if (menuType === 'trackChanges') {
+      const contextData = this.contextMenuService.getContextMenuData(event.target);
+      this.trackChangesContextMenu?.openMenu(
+        event.position.x,
+        event.position.y,
+        contextData
+      );
+    }
+  }
+
+  /**
+   * Determine which context menu to show based on target element
+   */
+  private determineMenuType(target: HTMLElement): 'trackChanges' | 'table' | null {
+    if (!this.editor) return null;
+
+    let current: HTMLElement | null = target;
+    const editorEl = this.editor.nativeElement;
+
+    while (current && current !== editorEl) {
+      // Check for table cell first
+      if (current.tagName === 'TD' || current.tagName === 'TH') {
+        return 'table';
+      }
+      // Check for track changes node
+      if (current.classList?.contains('ice-ins') || current.classList?.contains('ice-del')) {
+        return 'trackChanges';
+      }
+      current = current.parentElement;
+    }
+
+    // Fallback to track changes if enabled with pending changes
+    if (this.trackChangesState.isEnabled && this.trackChangesState.pendingCount > 0) {
+      return 'trackChanges';
+    }
+
+    return null;
   }
 }

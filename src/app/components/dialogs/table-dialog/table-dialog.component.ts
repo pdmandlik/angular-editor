@@ -6,9 +6,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { FormsModule } from '@angular/forms';
 
+/**
+ * File: src/app/components/dialogs/table-dialog/table-dialog.component.ts
+ */
+
 interface TableDialogData {
-  maxRows: number;
-  maxCols: number;
+  maxRows?: number;
+  maxCols?: number;
 }
 
 @Component({
@@ -22,87 +26,119 @@ interface TableDialogData {
     MatInputModule,
     FormsModule
   ],
-  templateUrl: './table-dialog.component.html',
-  styleUrls: ['./table-dialog.component.scss']
+  template: `
+    <h2 mat-dialog-title>Insert Table</h2>
+
+    <mat-dialog-content>
+      <p class="dialog-description">Enter the table dimensions:</p>
+      
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Rows</mat-label>
+          <input 
+            matInput 
+            type="number" 
+            [(ngModel)]="rows" 
+            (ngModelChange)="validateInput()"
+            min="1" 
+            [max]="maxRows"
+            required>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Columns</mat-label>
+          <input 
+            matInput 
+            type="number" 
+            [(ngModel)]="cols" 
+            (ngModelChange)="validateInput()"
+            min="1" 
+            [max]="maxCols"
+            required>
+        </mat-form-field>
+      </div>
+
+      <p class="size-preview">Table size: {{ rows }} × {{ cols }}</p>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button (click)="onCancel()">Cancel</button>
+      <button 
+        mat-raised-button 
+        color="primary" 
+        (click)="onInsert()"
+        [disabled]="!isValid">
+        Insert Table
+      </button>
+    </mat-dialog-actions>
+  `,
+  styles: [`
+    mat-dialog-content {
+      min-width: 300px;
+    }
+
+    .dialog-description {
+      margin-bottom: 16px;
+      color: #666;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .form-row mat-form-field {
+      flex: 1;
+    }
+
+    .size-preview {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      text-align: center;
+      font-weight: 500;
+      color: #1976d2;
+    }
+  `]
 })
 export class TableDialogComponent implements OnInit {
-  maxRows = 10;
-  maxCols = 10;
-  selectedRows = 2;
-  selectedCols = 3;
+  rows = 3;
+  cols = 3;
+  maxRows = 20;
+  maxCols = 20;
+  isValid = true;
 
   constructor(
     private dialogRef: MatDialogRef<TableDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: TableDialogData
   ) {
     if (data) {
-      this.maxRows = data.maxRows || 10;
-      this.maxCols = data.maxCols || 10;
+      this.maxRows = data.maxRows || 20;
+      this.maxCols = data.maxCols || 20;
     }
   }
 
   ngOnInit(): void {
-    this.validateSelection();
+    this.validateInput();
   }
 
-  createGrid(): number[][] {
-    const grid = [];
-    for (let i = 0; i < this.maxRows; i++) {
-      const row = [];
-      for (let j = 0; j < this.maxCols; j++) {
-        row.push(j);
-      }
-      grid.push(row);
-    }
-    return grid;
+  validateInput(): void {
+    this.rows = Math.max(1, Math.min(this.maxRows, Number(this.rows) || 1));
+    this.cols = Math.max(1, Math.min(this.maxCols, Number(this.cols) || 1));
+    this.isValid = this.rows >= 1 && this.cols >= 1;
   }
 
-  onCellHover(rowIndex: number, colIndex: number) {
-    this.selectedRows = rowIndex + 1;
-    this.selectedCols = colIndex + 1;
-  }
+  onInsert(): void {
+    if (!this.isValid) return;
 
-  onCellClick() {
-    if (this.validateSelection()) {
-      this.onSubmit();
-    }
-  }
-
-  onSubmit() {
-    if (!this.validateSelection()) {
-      return;
-    }
-    
     this.dialogRef.close({
-      rows: this.selectedRows,
-      cols: this.selectedCols
+      rows: this.rows,
+      cols: this.cols
     });
   }
 
-  onCancel() {
+  onCancel(): void {
     this.dialogRef.close();
-  }
-
-  isSelected(row: number, col: number): boolean {
-    return row < this.selectedRows && col < this.selectedCols;
-  }
-
-  private validateSelection(): boolean {
-    this.selectedRows = Number(this.selectedRows) || 1;
-    this.selectedCols = Number(this.selectedCols) || 1;
-    
-    this.selectedRows = Math.max(1, Math.min(this.maxRows, this.selectedRows));
-    this.selectedCols = Math.max(1, Math.min(this.maxCols, this.selectedCols));
-    
-    return this.selectedRows >= 1 && this.selectedRows <= this.maxRows &&
-           this.selectedCols >= 1 && this.selectedCols <= this.maxCols;
-  }
-
-  onRowsChange(): void {
-    this.validateSelection();
-  }
-
-  onColsChange(): void {
-    this.validateSelection();
   }
 }
