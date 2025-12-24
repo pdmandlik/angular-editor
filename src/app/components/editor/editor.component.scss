@@ -9,13 +9,33 @@
 }
 
 /* Line height utility classes */
-:host ::ng-deep .line-height-1-0 { line-height: 1.0 !important; }
-:host ::ng-deep .line-height-1-2 { line-height: 1.2 !important; }
-:host ::ng-deep .line-height-1-5 { line-height: 1.5 !important; }
-:host ::ng-deep .line-height-1-8 { line-height: 1.8 !important; }
-:host ::ng-deep .line-height-2-0 { line-height: 2.0 !important; }
-:host ::ng-deep .line-height-2-5 { line-height: 2.5 !important; }
-:host ::ng-deep .line-height-3-0 { line-height: 3.0 !important; }
+:host ::ng-deep .line-height-1-0 {
+  line-height: 1.0 !important;
+}
+
+:host ::ng-deep .line-height-1-2 {
+  line-height: 1.2 !important;
+}
+
+:host ::ng-deep .line-height-1-5 {
+  line-height: 1.5 !important;
+}
+
+:host ::ng-deep .line-height-1-8 {
+  line-height: 1.8 !important;
+}
+
+:host ::ng-deep .line-height-2-0 {
+  line-height: 2.0 !important;
+}
+
+:host ::ng-deep .line-height-2-5 {
+  line-height: 2.5 !important;
+}
+
+:host ::ng-deep .line-height-3-0 {
+  line-height: 3.0 !important;
+}
 
 :host ::ng-deep button.active {
   background-color: rgba(0, 0, 0, 0.1);
@@ -209,4 +229,16 @@
   background-color: rgba(244, 67, 54, 0.1);
   border: 1px solid #f44336;
   opacity: 0.5;
+}
+
+// Table cell selection
+::ng-deep .table-cell-selected {
+  background-color: #bbdefb !important;
+  outline: 2px solid #1976d2;
+  outline-offset: -2px;
+}
+
+::ng-deep .table-cell-selected::selection,
+::ng-deep .table-cell-selected *::selection {
+  background: transparent;
 }
