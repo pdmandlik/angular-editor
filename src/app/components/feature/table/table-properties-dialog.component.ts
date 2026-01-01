@@ -7,28 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
-
-export type TableHeaderType = 'none' | 'row' | 'column' | 'both';
-
-export interface TableProperties {
-  width: string;
-  widthUnit: 'px' | '%';
-  height: string;
-  heightUnit: 'px' | '%';
-  cellSpacing: number;
-  cellPadding: number;
-  border: number;
-  borderColor: string;
-  backgroundColor: string;
-  alignment: 'left' | 'center' | 'right' | '';
-  caption: string;
-  summary: string;
-  headers: TableHeaderType;
-}
-
-export interface TablePropertiesDialogData {
-  table: HTMLTableElement;
-}
+import { TableProperties, TablePropertiesDialogData } from 'src/app/entities/editor-config';
 
 @Component({
   selector: 'ed-table-properties-dialog',

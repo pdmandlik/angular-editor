@@ -16,42 +16,8 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 import { HistoryManagerService } from './history-manager.service';
-import { EnterKeyService } from './enter-key.service';
 import { TrackChangesStateService } from './track-changes';
-
-/** Event types emitted by the service */
-export interface EditorKeyboardEvent {
-    type: 'typing' | 'navigation' | 'shortcut' | 'command';
-    originalEvent: KeyboardEvent;
-    handled: boolean;
-}
-
-export interface EditorSelectionEvent {
-    hasSelection: boolean;
-    isCollapsed: boolean;
-    range: Range | null;
-}
-
-export interface EditorFocusEvent {
-    type: 'focus' | 'blur';
-    relatedTarget: EventTarget | null;
-}
-
-export interface EditorContextMenuEvent {
-    position: { x: number; y: number };
-    target: HTMLElement;
-    shouldShowCustomMenu: boolean;
-    menuType: 'trackChanges' | 'table' | null;
-}
-
-/** Navigation keys that don't trigger content changes */
-const NAVIGATION_KEYS = [
-    'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
-    'Home', 'End', 'PageUp', 'PageDown'
-];
-
-/** Keys that should be ignored for typing events */
-const MODIFIER_ONLY_KEYS = ['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'];
+import { EditorContextMenuEvent, EditorFocusEvent, EditorKeyboardEvent, EditorSelectionEvent, MODIFIER_ONLY_KEYS, NAVIGATION_KEYS } from '../entities/editor-config';
 
 @Injectable({ providedIn: 'root' })
 export class EditorEventsService implements OnDestroy {

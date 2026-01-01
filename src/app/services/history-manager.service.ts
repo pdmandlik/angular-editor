@@ -1,23 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
-
-/**
- * Snapshot structure - mirrors CKEditor's Image class
- * Stores both content and selection state
- */
-interface Snapshot {
-    contents: string;
-    selectionStart: number | null;
-    selectionEnd: number | null;
-}
-
-/**
- * Key groups for typing detection (like CKEditor)
- */
-enum KeyGroup {
-    PRINTABLE = 0,
-    FUNCTIONAL = 1  // Backspace, Delete
-}
+import { KeyGroup, Snapshot } from '../entities/editor-config';
 
 /**
  * History Manager Service - Matching CKEditor 4's UndoManager Logic

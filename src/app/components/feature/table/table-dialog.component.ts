@@ -5,16 +5,7 @@ import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/materia
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-
-export interface TableDialogData {
-  maxRows?: number;
-  maxCols?: number;
-}
-
-export interface TableDialogResult {
-  rows: number;
-  cols: number;
-}
+import { TableDialogData, TableDialogResult } from 'src/app/entities/editor-config';
 
 @Component({
   selector: 'ed-table-dialog',

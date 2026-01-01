@@ -127,3 +127,103 @@ export const DEFAULT_EDITOR_CONFIG: EditorConfig = {
   enterMode: EnterMode.ENTER_DIV,
   shiftEnterMode: EnterMode.ENTER_BR
 };
+
+export interface TableDialogData {
+  maxRows?: number;
+  maxCols?: number;
+}
+
+export interface TableDialogResult {
+  rows: number;
+  cols: number;
+}
+
+export type TableHeaderType = 'none' | 'row' | 'column' | 'both';
+
+export interface TableProperties {
+  width: string;
+  widthUnit: 'px' | '%';
+  height: string;
+  heightUnit: 'px' | '%';
+  cellSpacing: number;
+  cellPadding: number;
+  border: number;
+  borderColor: string;
+  backgroundColor: string;
+  alignment: 'left' | 'center' | 'right' | '';
+  caption: string;
+  summary: string;
+  headers: TableHeaderType;
+}
+
+export interface TablePropertiesDialogData {
+  table: HTMLTableElement;
+}
+
+/** 
+ * Table cell position interface
+ */
+export interface CellPosition {
+    row: number;
+    col: number;
+    cell: HTMLTableCellElement;
+    rowSpan: number;
+    colSpan: number;
+}
+
+/**
+ * Table map - 2D array representing table structure accounting for rowspan/colspan
+ */
+export type TableMap = (HTMLTableCellElement | null)[][];
+
+/** Event types emitted by the service */
+export interface EditorKeyboardEvent {
+    type: 'typing' | 'navigation' | 'shortcut' | 'command';
+    originalEvent: KeyboardEvent;
+    handled: boolean;
+}
+
+export interface EditorSelectionEvent {
+    hasSelection: boolean;
+    isCollapsed: boolean;
+    range: Range | null;
+}
+
+export interface EditorFocusEvent {
+    type: 'focus' | 'blur';
+    relatedTarget: EventTarget | null;
+}
+
+export interface EditorContextMenuEvent {
+    position: { x: number; y: number };
+    target: HTMLElement;
+    shouldShowCustomMenu: boolean;
+    menuType: 'trackChanges' | 'table' | null;
+}
+
+/** Navigation keys that don't trigger content changes */
+export const NAVIGATION_KEYS = [
+    'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+    'Home', 'End', 'PageUp', 'PageDown'
+];
+
+/** Keys that should be ignored for typing events */
+export const MODIFIER_ONLY_KEYS = ['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'];
+
+/**
+ * Snapshot structure - mirrors CKEditor's Image class
+ * Stores both content and selection state
+ */
+export interface Snapshot {
+    contents: string;
+    selectionStart: number | null;
+    selectionEnd: number | null;
+}
+
+/**
+ * Key groups for typing detection (like CKEditor)
+ */
+export enum KeyGroup {
+    PRINTABLE = 0,
+    FUNCTIONAL = 1  // Backspace, Delete
+}

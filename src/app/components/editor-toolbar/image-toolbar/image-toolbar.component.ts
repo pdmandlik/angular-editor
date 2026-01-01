@@ -4,7 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { ImageUploadDialogComponent } from '../../dialogs/image-upload-dialog/image-upload-dialog.component';
+import { ImageUploadDialogComponent } from '../../feature/image-upload-dialog/image-upload-dialog.component';
 import { ImageUploadService } from 'src/app/services/image-upload.service';
 import { CommandExecutorService } from 'src/app/services/command-executor.service';
 import { SelectionManagerService } from 'src/app/services/selection-manager.service';

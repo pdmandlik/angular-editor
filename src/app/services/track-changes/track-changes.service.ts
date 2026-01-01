@@ -7,11 +7,11 @@ import { EnterKeyService } from '../enter-key.service';
 import { TrackChangesStateService } from './track-changes-state.service';
 import { TrackChangesNodeService } from './track-changes-node.service';
 import { TrackChangesDomService } from './track-changes-dom.service';
-import { TrackChangesInsertService, InsertOptions } from './track-changes-insert.service';
+import { TrackChangesInsertService } from './track-changes-insert.service';
 import { TrackChangesDeleteService } from './track-changes-delete.service';
 import { TrackChangesAcceptRejectService } from './track-changes-accept-reject.service';
 import { TrackChangesEventService } from './track-changes-event.service';
-import { IceNode, ICE_ATTRIBUTES, ICE_CLASSES } from './track-changes.constants';
+import { IceNode, ICE_ATTRIBUTES, ICE_CLASSES, InsertOptions } from './track-changes.constants';
 
 /**
  * Main TrackChangesService - Orchestrator/Facade

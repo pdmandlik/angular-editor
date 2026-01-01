@@ -127,3 +127,19 @@ export function isInsertNode(element: HTMLElement): boolean {
 export function isDeleteNode(element: HTMLElement): boolean {
     return element.classList.contains(ICE_CLASSES.delete);
 }
+
+/**
+ * Context menu data passed when opening the menu
+ */
+export interface TrackChangesContextMenuData {
+    changeId: string | null;
+    changeType: 'insert' | 'delete' | null;
+    userName: string | null;
+    timestamp: Date | null;
+    hasChanges: boolean;
+}
+
+export interface InsertOptions {
+    text?: string;
+    nodes?: Node[];
+}
