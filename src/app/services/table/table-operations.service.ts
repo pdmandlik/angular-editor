@@ -1,21 +1,6 @@
 import { Injectable } from '@angular/core';
 import { SelectionManagerService } from '../selection-manager.service';
-
-/** 
- * Table cell position interface
- */
-export interface CellPosition {
-    row: number;
-    col: number;
-    cell: HTMLTableCellElement;
-    rowSpan: number;
-    colSpan: number;
-}
-
-/**
- * Table map - 2D array representing table structure accounting for rowspan/colspan
- */
-export type TableMap = (HTMLTableCellElement | null)[][];
+import { CellPosition, TableMap } from 'src/app/entities/editor-config';
 
 /**
  * Table Operations Service

@@ -2,13 +2,8 @@ import { Injectable } from '@angular/core';
 import { TrackChangesStateService } from './track-changes-state.service';
 import { TrackChangesNodeService } from './track-changes-node.service';
 import { TrackChangesDomService } from './track-changes-dom.service';
-import { IceNode, CHANGE_TYPES, ICE_ATTRIBUTES, ICE_CLASSES } from './track-changes.constants';
+import { IceNode, CHANGE_TYPES, ICE_ATTRIBUTES, ICE_CLASSES, InsertOptions } from './track-changes.constants';
 import { ChangeRecord } from '../../entities/editor-config';
-
-export interface InsertOptions {
-    text?: string;
-    nodes?: Node[];
-}
 
 @Injectable({ providedIn: 'root' })
 export class TrackChangesInsertService {

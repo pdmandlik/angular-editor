@@ -4,18 +4,7 @@ import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { Subject, takeUntil } from 'rxjs';
-import { TrackChangesStateService } from 'src/app/services/track-changes';
-
-/**
- * Context menu data passed when opening the menu
- */
-export interface TrackChangesContextMenuData {
-    changeId: string | null;
-    changeType: 'insert' | 'delete' | null;
-    userName: string | null;
-    timestamp: Date | null;
-    hasChanges: boolean;
-}
+import { TrackChangesContextMenuData, TrackChangesStateService } from 'src/app/services/track-changes';
 
 /**
  * Track Changes Context Menu Component (Compact Version)

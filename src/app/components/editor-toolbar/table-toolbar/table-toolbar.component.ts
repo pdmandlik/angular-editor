@@ -7,12 +7,12 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Subject } from 'rxjs';
-import { TableDialogComponent } from '../../dialogs/table-dialog/table-dialog.component';
+import { TableDialogComponent } from '../../feature/table/table-dialog.component';
 import { TableOperationsService } from 'src/app/services/table/table-operations.service';
 import { CommandExecutorService } from 'src/app/services/command-executor.service';
 import { SelectionManagerService } from 'src/app/services/selection-manager.service';
-import { CellPropertiesDialogComponent } from '../../dialogs/table/cell-properties-dialog.component';
-import { TablePropertiesDialogComponent } from '../../dialogs/table/table-properties-dialog.component';
+import { CellPropertiesDialogComponent } from '../../feature/table/cell-properties-dialog.component';
+import { TablePropertiesDialogComponent } from '../../feature/table/table-properties-dialog.component';
 
 /**
  * File: src/app/components/editor-toolbar/table-toolbar/table-toolbar.component.ts

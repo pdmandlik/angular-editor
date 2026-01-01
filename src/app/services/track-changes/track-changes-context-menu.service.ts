@@ -1,17 +1,6 @@
 import { Injectable } from '@angular/core';
 import { TrackChangesStateService } from './track-changes-state.service';
-import { ICE_CLASSES, ICE_ATTRIBUTES } from './track-changes.constants';
-
-/**
- * Context menu data interface
- */
-export interface TrackChangesContextMenuData {
-    changeId: string | null;
-    changeType: 'insert' | 'delete' | null;
-    userName: string | null;
-    timestamp: Date | null;
-    hasChanges: boolean;
-}
+import { ICE_CLASSES, ICE_ATTRIBUTES, TrackChangesContextMenuData } from './track-changes.constants';
 
 /**
  * Service to handle context menu interactions for track changes.
