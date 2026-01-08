@@ -2,26 +2,19 @@
  * Global Styles
  * Path: src/styles.scss
  *
- * Angular Material 13 overrides and global editor styling.
- * These styles complement component-level styles and handle
- * cross-component concerns like menu panels and context menus.
+ * Angular Material 13 (Legacy/Non-MDC) theme overrides.
+ * Uses CSS custom properties for runtime theming.
  */
 
-/* ============================================================
-   EDITOR TOOLBAR - GLOBAL OVERRIDES
-   Base toolbar configuration applied across all breakpoints
-   ============================================================ */
-
+/* Base Editor Toolbar */
 .editor-toolbar.mat-toolbar {
   padding: 6px 8px;
   gap: 2px;
   flex-wrap: wrap;
   height: auto;
   min-height: 44px;
-  background-color: #fafafa;
-  border-bottom: 1px solid #e0e0e0;
-
-  /* Flex alignment - critical for proper vertical centering */
+  background-color: var(--ed-surface, #fafafa);
+  border-bottom: 1px solid color-mix(in srgb, var(--ed-on-surface, #000) 10%, transparent);
   align-items: center;
   align-content: center;
   justify-content: flex-start;
@@ -45,18 +38,290 @@
   }
 }
 
-/* ============================================================
-   RESPONSIVE BREAKPOINTS - TOOLBAR
-   Progressive size reduction for smaller viewports
-   ============================================================ */
+/* Material Menu Panels - Theme Aware */
+.mat-menu-panel {
+  background: var(--ed-button-bg, #ffffff) !important;
+  border-radius: var(--ed-radius-menu, 8px) !important;
+  box-shadow: var(--ed-shadow-elevated, 0 4px 12px rgba(0, 0, 0, 0.15)) !important;
 
-/* Medium - Tablets (max-width: 1024px) */
+  .mat-menu-content {
+    padding: 4px 0 !important;
+    background: transparent;
+  }
+
+  .mat-menu-item {
+    color: var(--ed-on-surface, #333) !important;
+    background: transparent;
+
+    .mat-icon {
+      color: var(--ed-on-surface, #666) !important;
+      opacity: 0.7;
+    }
+
+    &:hover:not([disabled]) {
+      background-color: var(--ed-button-hover, rgba(0, 0, 0, 0.04)) !important;
+
+      .mat-icon {
+        color: var(--ed-primary, #1976d2) !important;
+        opacity: 1;
+      }
+    }
+
+    &[disabled] {
+      opacity: 0.5;
+    }
+  }
+}
+
+/* Table Operations Menu */
+.table-ops-menu.mat-menu-panel {
+  .menu-section-label {
+    padding: 8px 16px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ed-on-surface, #666);
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .mat-menu-item {
+    height: 36px;
+    line-height: 36px;
+    font-size: 13px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-right: 12px;
+    }
+
+    &.danger-item {
+      color: var(--ed-error, #d32f2f) !important;
+
+      mat-icon {
+        color: var(--ed-error, #d32f2f) !important;
+      }
+    }
+  }
+}
+
+/* Track Changes Context Menu */
+.tc-context-menu .mat-menu-panel,
+.tc-context-menu-panel {
+  min-width: 140px !important;
+  max-width: 200px !important;
+
+  .tc-menu-item.mat-menu-item {
+    height: 32px !important;
+    line-height: 32px !important;
+    padding: 0 12px !important;
+    font-size: 13px !important;
+
+    .mat-icon {
+      font-size: 18px !important;
+      width: 18px !important;
+      height: 18px !important;
+      margin-right: 8px !important;
+    }
+  }
+
+  .tc-menu-header {
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ed-on-surface, #666);
+    opacity: 0.6;
+    text-transform: uppercase;
+    border-bottom: 1px solid color-mix(in srgb, var(--ed-on-surface, #000) 10%, transparent);
+  }
+
+  .tc-accept-icon.mat-icon {
+    color: var(--ed-success, #4caf50) !important;
+  }
+
+  .tc-reject-icon.mat-icon {
+    color: var(--ed-error, #f44336) !important;
+  }
+}
+
+/* Table Context Menu */
+.table-context-menu.mat-menu-panel {
+  min-width: 160px;
+
+  .mat-menu-item {
+    height: 36px;
+    line-height: 36px;
+    font-size: 13px;
+
+    .mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-right: 10px;
+    }
+  }
+}
+
+/* Material Dialog Panels - Theme Aware */
+.mat-dialog-container {
+  background: var(--ed-button-bg, #ffffff) !important;
+  color: var(--ed-on-surface, #333) !important;
+  border-radius: var(--ed-radius-container, 12px) !important;
+}
+
+/* Dialog Title */
+.mat-dialog-title {
+  color: var(--ed-on-surface, #333) !important;
+}
+
+/* Dialog Content */
+.mat-dialog-content {
+  color: var(--ed-on-surface, #333) !important;
+}
+
+/* Form Fields - Theme Aware */
+.mat-form-field {
+  .mat-form-field-label {
+    color: var(--ed-on-surface, #666) !important;
+    opacity: 0.7;
+  }
+
+  .mat-input-element {
+    color: var(--ed-on-surface, #333) !important;
+  }
+
+  &.mat-form-field-appearance-outline {
+    .mat-form-field-outline {
+      color: color-mix(in srgb, var(--ed-on-surface, #000) 25%, transparent) !important;
+    }
+
+    &.mat-focused .mat-form-field-outline-thick {
+      color: var(--ed-primary, #1976d2) !important;
+    }
+
+    &.mat-focused .mat-form-field-label {
+      color: var(--ed-primary, #1976d2) !important;
+      opacity: 1;
+    }
+  }
+}
+
+/* Select Dropdown */
+.mat-select-panel {
+  background: var(--ed-button-bg, #ffffff) !important;
+
+  .mat-option {
+    color: var(--ed-on-surface, #333) !important;
+
+    &:hover:not(.mat-option-disabled) {
+      background: var(--ed-button-hover, rgba(0, 0, 0, 0.04)) !important;
+    }
+
+    &.mat-selected:not(.mat-option-multiple) {
+      background: var(--ed-button-active-bg, rgba(0, 0, 0, 0.08)) !important;
+      color: var(--ed-primary, #1976d2) !important;
+    }
+  }
+}
+
+/* Buttons - Theme Aware */
+.mat-button,
+.mat-icon-button {
+  color: var(--ed-on-surface, #333) !important;
+
+  &:hover:not([disabled]) {
+    background-color: var(--ed-button-hover, rgba(0, 0, 0, 0.04)) !important;
+  }
+}
+
+.mat-raised-button {
+
+  &[color="primary"],
+  &.mat-primary {
+    background-color: var(--ed-primary, #1976d2) !important;
+    color: var(--ed-on-primary, #ffffff) !important;
+
+    &:hover:not([disabled]) {
+      background-color: color-mix(in srgb, var(--ed-primary, #1976d2) 85%, #000) !important;
+    }
+  }
+}
+
+.mat-flat-button {
+
+  &[color="primary"],
+  &.mat-primary {
+    background-color: var(--ed-primary, #1976d2) !important;
+    color: var(--ed-on-primary, #ffffff) !important;
+  }
+}
+
+/* Tabs - Theme Aware */
+.mat-tab-group {
+  .mat-tab-label {
+    color: var(--ed-on-surface, #666) !important;
+    opacity: 0.7;
+
+    &.mat-tab-label-active {
+      color: var(--ed-primary, #1976d2) !important;
+      opacity: 1;
+    }
+  }
+
+  .mat-ink-bar {
+    background-color: var(--ed-primary, #1976d2) !important;
+  }
+}
+
+/* Checkbox - Theme Aware */
+.mat-checkbox {
+  .mat-checkbox-label {
+    color: var(--ed-on-surface, #333) !important;
+  }
+
+  &.mat-checkbox-checked .mat-checkbox-background {
+    background-color: var(--ed-primary, #1976d2) !important;
+  }
+}
+
+/* Progress Bar - Theme Aware */
+.mat-progress-bar {
+  .mat-progress-bar-fill::after {
+    background-color: var(--ed-primary, #1976d2) !important;
+  }
+
+  .mat-progress-bar-buffer {
+    background-color: color-mix(in srgb, var(--ed-primary, #1976d2) 30%, transparent) !important;
+  }
+}
+
+/* Progress Spinner - Theme Aware */
+.mat-progress-spinner circle,
+.mat-spinner circle {
+  stroke: var(--ed-primary, #1976d2) !important;
+}
+
+/* Dividers */
+.mat-divider {
+  border-color: color-mix(in srgb, var(--ed-on-surface, #000) 12%, transparent) !important;
+}
+
+/* Tooltips - Theme Aware */
+.mat-tooltip {
+  background: color-mix(in srgb, var(--ed-on-surface, #333) 90%, transparent);
+  color: var(--ed-button-bg, #ffffff);
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+/* Responsive Toolbar */
 @media (max-width: 1024px) {
   .editor-toolbar.mat-toolbar {
     padding: 4px 6px;
     min-height: 40px;
-    align-items: center;
-    align-content: center;
 
     .mat-icon-button {
       width: 32px;
@@ -78,47 +343,11 @@
   }
 }
 
-/* Small - Landscape phones / small tablets (max-width: 768px) */
 @media (max-width: 768px) {
   .editor-toolbar.mat-toolbar {
-    padding: 4px;
-    min-height: 38px;
-    align-items: center;
-    align-content: center;
-
-    .mat-icon-button {
-      width: 30px;
-      height: 30px;
-      line-height: 30px;
-
-      .mat-icon {
-        font-size: 16px;
-        width: 16px;
-        height: 16px;
-        line-height: 16px;
-      }
-    }
-
-    mat-divider[vertical] {
-      height: 18px;
-      margin: 0 2px;
-
-      /* Hide overflow dividers on smaller screens */
-      &:nth-of-type(n + 4) {
-        display: none;
-      }
-    }
-  }
-}
-
-/* Extra small - Mobile phones (max-width: 480px) */
-@media (max-width: 480px) {
-  .editor-toolbar.mat-toolbar {
-    padding: 2px 4px;
+    padding: 3px 4px;
     min-height: 36px;
-    gap: 0;
-    align-items: center;
-    align-content: center;
+    gap: 1px;
 
     .mat-icon-button {
       width: 28px;
@@ -133,188 +362,22 @@
       }
     }
 
-    /* Hide all dividers on mobile for maximum space */
     mat-divider[vertical] {
-      display: none;
+      height: 16px;
+      margin: 0 1px;
     }
   }
-}
 
-/* ============================================================
-   TRACK CHANGES TOOLBAR - RESPONSIVE
-   Divider height adjustments for track changes section
-   ============================================================ */
-
-ed-track-changes-toolbar {
-  .track-changes-buttons {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-
-    mat-divider[vertical] {
-      height: 24px;
-    }
-  }
-}
-
-@media (max-width: 768px) {
-  ed-track-changes-toolbar .track-changes-buttons {
-    mat-divider[vertical] {
-      height: 18px;
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  ed-track-changes-toolbar .track-changes-buttons {
-    mat-divider[vertical] {
-      display: none;
-    }
-  }
-}
-
-/* ============================================================
-   TABLE TOOLBAR MENU - RESPONSIVE
-   Dropdown menu sizing for table operations
-   ============================================================ */
-
-.table-ops-menu.mat-menu-panel {
-  .mat-menu-item {
-    height: 36px;
-    line-height: 36px;
-    font-size: 13px;
+  .table-ops-menu.mat-menu-panel .mat-menu-item {
+    height: 32px;
+    line-height: 32px;
+    font-size: 12px;
 
     mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      margin-right: 12px;
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      margin-right: 8px;
     }
-  }
-}
-
-@media (max-width: 768px) {
-  .table-ops-menu.mat-menu-panel {
-    .mat-menu-item {
-      height: 32px;
-      line-height: 32px;
-      font-size: 12px;
-
-      mat-icon {
-        font-size: 16px;
-        width: 16px;
-        height: 16px;
-        margin-right: 8px;
-      }
-    }
-  }
-}
-
-/* ============================================================
-   TRACK CHANGES CONTEXT MENU
-   Right-click menu for accept/reject operations
-   ============================================================ */
-
-.mat-menu-panel.tc-context-menu-panel,
-.tc-context-menu .mat-menu-panel {
-  min-width: 140px !important;
-  max-width: 200px !important;
-  border-radius: 6px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-  overflow: hidden;
-}
-
-.tc-context-menu .mat-menu-content,
-.tc-context-menu-panel .mat-menu-content {
-  padding: 4px 0 !important;
-}
-
-.tc-context-menu .mat-menu-item,
-.tc-context-menu-panel .mat-menu-item,
-.tc-menu-item.mat-menu-item {
-  height: 32px !important;
-  line-height: 32px !important;
-  padding: 0 12px !important;
-  font-size: 13px !important;
-
-  .mat-icon {
-    font-size: 18px !important;
-    width: 18px !important;
-    height: 18px !important;
-    margin-right: 8px !important;
-    vertical-align: middle;
-  }
-}
-
-.tc-context-menu .mat-divider,
-.tc-context-menu-panel .mat-divider {
-  margin: 4px 0 !important;
-}
-
-/* Accept/reject icon colors */
-.tc-accept-icon.mat-icon {
-  color: #4caf50 !important;
-}
-
-.tc-reject-icon.mat-icon {
-  color: #f44336 !important;
-}
-
-/* ============================================================
-   TABLE CONTEXT MENU
-   Right-click menu for table operations
-   ============================================================ */
-
-.table-context-menu.mat-menu-panel {
-  min-width: 160px;
-  border-radius: 8px;
-
-  .mat-menu-item {
-    height: 36px;
-    line-height: 36px;
-    font-size: 13px;
-
-    .mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      margin-right: 10px;
-      color: rgba(0, 0, 0, 0.6);
-    }
-
-    &:hover .mat-icon {
-      color: rgba(0, 0, 0, 0.87);
-    }
-  }
-}
-
-/* ============================================================
-   IMAGE UPLOAD DIALOG
-   Modal dialog styling for image insertion
-   ============================================================ */
-
-.image-upload-dialog {
-  .mat-dialog-container {
-    border-radius: 12px;
-    padding: 0;
-    overflow: hidden;
-  }
-}
-
-/* ============================================================
-   TABLE DIALOGS
-   Modal dialogs for table creation and properties
-   ============================================================ */
-
-.table-insert-dialog,
-.table-properties-dialog,
-.cell-properties-dialog {
-  .mat-dialog-container {
-    border-radius: 12px;
-    padding: 0;
-  }
-
-  .mat-form-field {
-    width: 100%;
   }
 }

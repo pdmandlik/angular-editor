@@ -2,8 +2,12 @@
  * Text Formatting Toolbar Component
  * Path: src/app/components/editor-toolbar/text-formatting-toolbar/text-formatting-toolbar.component.ts
  * 
- * Handles text formatting: Bold, Italic, Underline, Strikethrough, Subscript, Superscript.
- * Uses expandable group pattern for less-used actions.
+ * Provides text formatting controls: Bold, Italic, Underline, Strikethrough, Subscript, Superscript.
+ * Subscript/Superscript are revealed on hover via expandable group pattern.
+ * 
+ * Selection Handling:
+ * Uses mousedown capture pattern to preserve selection across all formatting operations.
+ * This is critical for multi-character selections and consecutive format applications.
  */
 
 import { Component, Output, EventEmitter } from '@angular/core';
@@ -13,6 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { animate, style, transition, trigger } from '@angular/animations';
 import { CommandExecutorService } from 'src/app/services/command-executor.service';
+import { SelectionManagerService } from 'src/app/services/selection-manager.service';
 
 @Component({
   selector: 'ed-text-formatting-toolbar',
@@ -115,6 +120,7 @@ import { CommandExecutorService } from 'src/app/services/command-executor.servic
 
     button {
       border-radius: var(--ed-radius-button, 12px) !important;
+      color: var(--ed-on-surface, #1a1a1a) !important;
       transition: 
         background-color var(--ed-duration-normal, 200ms) var(--ed-easing-standard),
         color var(--ed-duration-normal, 200ms) var(--ed-easing-standard),
@@ -137,7 +143,14 @@ import { CommandExecutorService } from 'src/app/services/command-executor.servic
       color: var(--ed-primary) !important;
     }
 
-    button.active .mat-icon { color: var(--ed-primary) !important; }
+    button.active .mat-icon {
+      color: var(--ed-primary) !important;
+    }
+
+    .mat-icon {
+      color: inherit !important;
+      transition: transform var(--ed-duration-normal, 200ms) var(--ed-easing-spring);
+    }
 
     .expandable-group {
       display: flex;
@@ -145,11 +158,7 @@ import { CommandExecutorService } from 'src/app/services/command-executor.servic
       gap: var(--ed-group-gap, 2px);
       padding-left: 2px;
       margin-left: 2px;
-      border-left: 1px solid rgba(0, 0, 0, 0.08);
-    }
-
-    .mat-icon {
-      transition: transform var(--ed-duration-normal, 200ms) var(--ed-easing-spring);
+      border-left: 1px solid color-mix(in srgb, var(--ed-on-surface, #000) 12%, transparent);
     }
   `]
 })
@@ -164,40 +173,89 @@ export class TextFormattingToolbarComponent {
   superActive = false;
   showExtras = false;
 
-  constructor(private commandExecutor: CommandExecutorService) { }
+  private capturedRange: Range | null = null;
 
+  constructor(
+    private commandExecutor: CommandExecutorService,
+    private selectionManager: SelectionManagerService
+  ) { }
+
+  /**
+   * Captures selection on mousedown before focus shifts to the button.
+   * Without this, multi-character selections fail for subscript/superscript.
+   */
   onMouseDown(event: MouseEvent): void {
     event.preventDefault();
+
+    const selection = window.getSelection();
+    const editorElement = this.selectionManager.getEditorElement();
+
+    if (selection && selection.rangeCount > 0 && editorElement) {
+      const range = selection.getRangeAt(0);
+      if (editorElement.contains(range.commonAncestorContainer)) {
+        this.capturedRange = range.cloneRange();
+        this.selectionManager.saveSelection();
+      }
+    }
   }
 
   formatBold(): void {
-    this.commandExecutor.executeCommand('bold');
-    this.commandExecuted.emit();
+    this.executeFormattingCommand('bold');
   }
 
   formatItalic(): void {
-    this.commandExecutor.executeCommand('italic');
-    this.commandExecuted.emit();
+    this.executeFormattingCommand('italic');
   }
 
   formatUnderline(): void {
-    this.commandExecutor.executeCommand('underline');
-    this.commandExecuted.emit();
+    this.executeFormattingCommand('underline');
   }
 
   formatStrikethrough(): void {
-    this.commandExecutor.executeCommand('strikeThrough');
-    this.commandExecuted.emit();
+    this.executeFormattingCommand('strikeThrough');
   }
 
   formatSubscript(): void {
-    this.commandExecutor.executeCommand('subscript');
-    this.commandExecuted.emit();
+    this.executeFormattingCommand('subscript');
   }
 
   formatSuperscript(): void {
-    this.commandExecutor.executeCommand('superscript');
-    this.commandExecuted.emit();
+    this.executeFormattingCommand('superscript');
+  }
+
+  /**
+   * Executes formatting command with proper selection restoration.
+   * Uses setTimeout to ensure selection is applied before execCommand runs.
+   */
+  private executeFormattingCommand(command: string): void {
+    const editorElement = this.selectionManager.getEditorElement();
+    if (!editorElement) return;
+
+    editorElement.focus();
+
+    if (this.capturedRange) {
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(this.capturedRange);
+      }
+    } else {
+      this.selectionManager.restoreSelection();
+    }
+
+    setTimeout(() => {
+      try {
+        const result = document.execCommand(command, false, '');
+        if (result) {
+          this.selectionManager.saveSelection();
+          this.updateState();
+          this.commandExecuted.emit();
+        }
+      } catch (error) {
+        console.error(`${command} command failed:`, error);
+      }
+      this.capturedRange = null;
+    }, 0);
   }
 
   updateState(): void {

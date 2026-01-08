@@ -228,10 +228,10 @@ export const THEME_MIDNIGHT: EditorTheme = {
         primarySurface: '#2d2d3a',
         surface: '#1e1e2e',
         onPrimary: '#1e1e2e',
-        onSurface: '#e4e4e7',
+        onSurface: '#ffffff',
         buttonBg: '#2d2d3a',
-        buttonHover: 'rgba(187, 134, 252, 0.12)',
-        buttonActive: 'rgba(187, 134, 252, 0.24)',
+        buttonHover: 'rgba(187, 134, 252, 0.15)',
+        buttonActive: 'rgba(187, 134, 252, 0.28)',
         buttonActiveBg: '#3d3d4a',
         success: '#03dac6',
         error: '#cf6679',
@@ -244,9 +244,9 @@ export const THEME_MIDNIGHT: EditorTheme = {
         borderRadiusMenu: '16px'
     },
     elevation: {
-        shadowSoft: '0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2)',
-        shadowElevated: '0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.3)',
-        shadowFocused: '0 0 0 2px rgba(187, 134, 252, 0.4), 0 0 0 4px rgba(187, 134, 252, 0.2)'
+        shadowSoft: '0 2px 8px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3)',
+        shadowElevated: '0 4px 12px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4)',
+        shadowFocused: '0 0 0 2px rgba(187, 134, 252, 0.5), 0 0 0 4px rgba(187, 134, 252, 0.25)'
     },
     motion: DEFAULT_MOTION,
     spacing: DEFAULT_SPACING

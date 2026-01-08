@@ -2,19 +2,15 @@
  * Editor Component Styles
  * Path: src/app/components/editor/editor.component.scss
  *
- * Runtime theming via CSS custom properties (--ed-* tokens).
- * Handles toolbar layout, button groups, track changes styling, and responsive breakpoints.
+ * Uses CSS custom properties (--ed-*) for runtime theming.
+ * Supports both light and dark themes through theme-aware color references.
  */
 
 :host {
   display: block;
 }
 
-/* ============================================================
-   KEYFRAME ANIMATIONS
-   Entrance animations for toolbar groups and fade effects
-   ============================================================ */
-
+/* Animations */
 @keyframes groupSlideIn {
   0% {
     opacity: 0;
@@ -37,11 +33,37 @@
   }
 }
 
-/* ============================================================
-   EDITOR WRAPPER
-   Main container with rounded corners and focus state
-   ============================================================ */
+/* Line Height Overlay - Theme Integration */
+::ng-deep .line-height-grid-overlay {
+  background: var(--ed-button-bg, #ffffff) !important;
+  border-radius: var(--ed-radius-menu, 8px) !important;
+  box-shadow: var(--ed-shadow-elevated) !important;
+  border: 1px solid color-mix(in srgb, var(--ed-on-surface, #000) 10%, transparent);
 
+  .grid-title {
+    color: var(--ed-on-surface, #666) !important;
+  }
+
+  .height-option {
+    background: var(--ed-surface, #fafafa) !important;
+    color: var(--ed-on-surface, #333) !important;
+    border-color: color-mix(in srgb, var(--ed-on-surface, #000) 12%, transparent) !important;
+
+    &:hover {
+      background: var(--ed-button-hover, rgba(0, 0, 0, 0.04)) !important;
+      color: var(--ed-primary) !important;
+      border-color: var(--ed-primary) !important;
+    }
+
+    &.selected {
+      background: var(--ed-primary) !important;
+      color: var(--ed-on-primary, #ffffff) !important;
+      border-color: var(--ed-primary) !important;
+    }
+  }
+}
+
+/* Editor Container */
 .editor-wrapper {
   position: relative;
   border-radius: var(--ed-radius-container, 16px);
@@ -55,11 +77,7 @@
   }
 }
 
-/* ============================================================
-   TOOLBAR BASE STYLES
-   Mat-toolbar configuration with flex-wrap for responsive layout
-   ============================================================ */
-
+/* Toolbar */
 ::ng-deep mat-toolbar.mat-toolbar.editor-toolbar {
   min-height: 56px;
   padding: var(--ed-toolbar-padding, 12px 16px);
@@ -70,24 +88,16 @@
   border: none;
   border-radius: 0;
   box-shadow: none;
-
-  /* Critical for vertical centering when toolbar wraps to multiple rows */
   align-items: center;
   align-content: center;
-
   transition:
     background-color var(--ed-duration-slow, 320ms) var(--ed-easing-decelerate),
     padding var(--ed-duration-normal, 200ms) var(--ed-easing-standard);
 }
 
-/* ============================================================
-   TOOLBAR BUTTON GROUPS
-   Pill-shaped containers for related toolbar actions
-   ============================================================ */
-
+/* Toolbar Button Groups */
 ::ng-deep mat-toolbar.editor-toolbar {
 
-  /* All toolbar component hosts - unified alignment */
   ed-text-formatting-toolbar,
   ed-alignment-toolbar,
   ed-list-toolbar,
@@ -112,7 +122,6 @@
       box-shadow: var(--ed-shadow-elevated);
     }
 
-    /* Staggered entrance animation for each group */
     @for $i from 1 through 8 {
       &:nth-child(#{$i}) {
         animation-delay: #{$i * 40}ms;
@@ -120,7 +129,7 @@
     }
   }
 
-  /* Track changes toolbar - special handling for split button pattern */
+  /* Track Changes - Split button pattern */
   ed-track-changes-toolbar {
     display: inline-flex;
     align-items: center;
@@ -143,13 +152,14 @@
     }
   }
 
-  /* Button styles within groups */
+  /* Button Styles - Theme-aware colors for dark theme support */
   .mat-icon-button,
   button[mat-icon-button] {
     width: var(--ed-button-size, 36px) !important;
     height: var(--ed-button-size, 36px) !important;
     line-height: var(--ed-button-size, 36px) !important;
     border-radius: var(--ed-radius-button, 12px) !important;
+    color: var(--ed-on-surface, #1a1a1a) !important;
     transition:
       background-color var(--ed-duration-normal, 200ms) var(--ed-easing-standard),
       color var(--ed-duration-normal, 200ms) var(--ed-easing-standard),
@@ -160,6 +170,7 @@
       width: var(--ed-icon-size, 20px) !important;
       height: var(--ed-icon-size, 20px) !important;
       line-height: var(--ed-icon-size, 20px) !important;
+      color: inherit !important;
     }
 
     &:hover:not(:disabled) {
@@ -184,11 +195,7 @@
   }
 }
 
-/* ============================================================
-   WYSIWYG EDITOR CONTENT AREA
-   Editable region with placeholder support
-   ============================================================ */
-
+/* Editor Content Area */
 .wysiwyg-editor {
   padding: 20px 24px;
   min-height: 200px;
@@ -199,7 +206,6 @@
   background: var(--ed-button-bg, #ffffff);
   overflow-y: auto;
 
-  /* Placeholder styling */
   &:empty::before {
     content: attr(data-placeholder);
     color: var(--ed-on-surface, #1a1a1a);
@@ -212,11 +218,7 @@
   }
 }
 
-/* ============================================================
-   TRACK CHANGES STYLING
-   Visual indicators for insertions and deletions
-   ============================================================ */
-
+/* Track Changes Markers */
 ::ng-deep .tc-insert {
   background-color: color-mix(in srgb, var(--ed-success) 15%, transparent);
   color: color-mix(in srgb, var(--ed-success) 80%, #000);
@@ -228,75 +230,7 @@
   color: color-mix(in srgb, var(--ed-error) 80%, #000);
 }
 
-/* ============================================================
-   MENU PANEL STYLES
-   Dropdown menus with themed appearance
-   ============================================================ */
-
-::ng-deep .mat-menu-panel {
-  border-radius: var(--ed-radius-menu, 16px) !important;
-  box-shadow: var(--ed-shadow-elevated) !important;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-  animation: fadeIn var(--ed-duration-normal, 200ms) var(--ed-easing-decelerate);
-
-  .mat-menu-content {
-    padding: 8px !important;
-  }
-
-  .mat-menu-item {
-    border-radius: calc(var(--ed-radius-menu, 16px) / 2);
-    margin: 2px 0;
-    transition: background-color var(--ed-duration-normal, 200ms) var(--ed-easing-standard);
-
-    &:hover {
-      background-color: var(--ed-button-hover);
-    }
-  }
-}
-
-/* Line height picker overlay */
-::ng-deep .line-height-grid-overlay {
-  border-radius: var(--ed-radius-menu, 16px) !important;
-  box-shadow: var(--ed-shadow-elevated) !important;
-  background: var(--ed-button-bg, #fff);
-  animation: fadeIn var(--ed-duration-normal, 200ms) var(--ed-easing-decelerate);
-
-  .line-height-grid-container {
-    border-radius: var(--ed-radius-menu, 16px);
-
-    .grid-title {
-      color: var(--ed-on-surface);
-      opacity: 0.7;
-    }
-
-    .height-option {
-      border-radius: calc(var(--ed-radius-button, 12px) / 2);
-      color: var(--ed-on-surface);
-      transition:
-        background-color var(--ed-duration-normal, 200ms) var(--ed-easing-standard),
-        color var(--ed-duration-normal, 200ms) var(--ed-easing-standard),
-        transform var(--ed-duration-normal, 200ms) var(--ed-easing-spring);
-
-      &:hover {
-        background-color: var(--ed-button-hover);
-        color: var(--ed-primary);
-        transform: scale(1.02);
-      }
-
-      &.selected {
-        background-color: var(--ed-button-active-bg);
-        color: var(--ed-primary);
-      }
-    }
-  }
-}
-
-/* ============================================================
-   EDITOR FOOTER
-   Compact status bar with word/char count and theme picker
-   ============================================================ */
-
+/* Footer */
 .editor-footer {
   display: flex;
   align-items: center;
@@ -322,14 +256,6 @@
     }
   }
 
-  /* Theme picker container alignment */
-  ed-theme-picker {
-    display: inline-flex;
-    align-items: center;
-    line-height: 1;
-  }
-
-  /* Compact theme picker button */
   ::ng-deep ed-theme-picker {
     .theme-picker-container {
       display: inline-flex;
@@ -342,27 +268,25 @@
       line-height: 26px !important;
       background: var(--ed-button-bg, #ffffff);
       box-shadow: var(--ed-shadow-soft);
+      color: var(--ed-on-surface, #1a1a1a) !important;
 
       .mat-icon {
         font-size: 16px !important;
         width: 16px !important;
         height: 16px !important;
         line-height: 16px !important;
+        color: inherit !important;
       }
 
       &:hover {
         box-shadow: var(--ed-shadow-elevated);
+        color: var(--ed-primary) !important;
       }
     }
   }
 }
 
-/* ============================================================
-   RESPONSIVE BREAKPOINTS
-   Progressive size reduction for smaller screens
-   ============================================================ */
-
-/* Tablets (max-width: 1024px) */
+/* Responsive: Tablets */
 @media (max-width: 1024px) {
   .editor-wrapper {
     border-radius: 12px;
@@ -434,7 +358,7 @@
   }
 }
 
-/* Small tablets / landscape phones (max-width: 768px) */
+/* Responsive: Small Tablets / Landscape Phones */
 @media (max-width: 768px) {
   .editor-wrapper {
     border-radius: 10px;
@@ -508,7 +432,7 @@
   }
 }
 
-/* Mobile phones (max-width: 480px) */
+/* Responsive: Mobile */
 @media (max-width: 480px) {
   .editor-wrapper {
     border-radius: 8px;

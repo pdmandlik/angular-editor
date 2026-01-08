@@ -1,3 +1,11 @@
+/**
+ * Table Dialog Component
+ * Path: src/app/components/feature/table/table-dialog.component.ts
+ * 
+ * Modal dialog for inserting tables with visual grid selector.
+ * Uses CSS custom properties for theme-aware styling.
+ */
+
 import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -24,10 +32,8 @@ import { TableDialogData, TableDialogResult } from 'src/app/entities/editor-conf
     <mat-dialog-content>
       <p class="description">Select table size:</p>
 
-      <!-- Visual Grid Selector -->
       <div class="grid-section">
-        <div class="grid-container"
-             (mouseleave)="onGridLeave()">
+        <div class="grid-container" (mouseleave)="onGridLeave()">
           <div class="grid-row" *ngFor="let r of gridRows; let rowIdx = index">
             <div class="grid-cell"
                  *ngFor="let c of gridCols; let colIdx = index"
@@ -40,7 +46,6 @@ import { TableDialogData, TableDialogResult } from 'src/app/entities/editor-conf
         <div class="size-display">{{ rows }} × {{ cols }}</div>
       </div>
 
-      <!-- Manual Input -->
       <div class="manual-section">
         <span class="manual-label">Or enter manually:</span>
         <div class="input-row">
@@ -59,37 +64,116 @@ import { TableDialogData, TableDialogResult } from 'src/app/entities/editor-conf
 
     <mat-dialog-actions align="end">
       <button mat-button (click)="dialogRef.close()">Cancel</button>
-      <button mat-raised-button color="primary" (click)="onInsert()" [disabled]="!isValid">
+      <button mat-raised-button class="primary-btn" (click)="onInsert()" [disabled]="!isValid">
         Insert Table
       </button>
     </mat-dialog-actions>
   `,
   styles: [`
-    mat-dialog-content { min-width: 320px; }
-    .description { margin: 0 0 16px; color: #666; font-size: 14px; }
+    mat-dialog-content {
+      min-width: 320px;
+    }
 
-    .grid-section { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; }
-    .grid-container { display: inline-block; padding: 4px; background: #f5f5f5; border-radius: 4px; }
-    .grid-row { display: flex; }
+    .description {
+      margin: 0 0 16px;
+      color: var(--ed-on-surface, #666);
+      opacity: 0.8;
+      font-size: 14px;
+    }
+
+    .grid-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .grid-container {
+      display: inline-block;
+      padding: 4px;
+      background: var(--ed-surface, #f5f5f5);
+      border-radius: 4px;
+    }
+
+    .grid-row {
+      display: flex;
+    }
+
     .grid-cell {
-      width: 24px; height: 24px; margin: 2px;
-      background: white; border: 1px solid #ddd; border-radius: 2px;
-      cursor: pointer; transition: all 0.1s ease;
-    }
-    .grid-cell:hover { border-color: #1976d2; }
-    .grid-cell.selected { background: #1976d2; border-color: #1565c0; }
-    .size-display {
-      margin-top: 12px; padding: 6px 16px;
-      background: #e3f2fd; color: #1976d2;
-      border-radius: 16px; font-weight: 500; font-size: 14px;
+      width: 24px;
+      height: 24px;
+      margin: 2px;
+      background: var(--ed-button-bg, #ffffff);
+      border: 1px solid color-mix(in srgb, var(--ed-on-surface, #000) 15%, transparent);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.1s ease;
     }
 
-    .manual-section { border-top: 1px solid #eee; padding-top: 16px; }
-    .manual-label { display: block; color: #666; font-size: 13px; margin-bottom: 12px; }
-    .input-row { display: flex; align-items: center; gap: 8px; }
-    .compact-field { width: 80px; }
-    .compact-field ::ng-deep .mat-mdc-form-field-infix { padding: 8px 0 !important; min-height: 40px; }
-    .separator { color: #666; font-size: 16px; }
+    .grid-cell:hover {
+      border-color: var(--ed-primary, #1976d2);
+    }
+
+    .grid-cell.selected {
+      background: var(--ed-primary, #1976d2);
+      border-color: var(--ed-primary, #1976d2);
+    }
+
+    .size-display {
+      margin-top: 12px;
+      padding: 6px 16px;
+      background: var(--ed-primary-surface, #e3f2fd);
+      color: var(--ed-primary, #1976d2);
+      border-radius: 16px;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .manual-section {
+      border-top: 1px solid color-mix(in srgb, var(--ed-on-surface, #000) 12%, transparent);
+      padding-top: 16px;
+    }
+
+    .manual-label {
+      display: block;
+      color: var(--ed-on-surface, #666);
+      opacity: 0.8;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .compact-field {
+      width: 80px;
+    }
+
+    .compact-field ::ng-deep .mat-form-field-infix {
+      padding: 8px 0 !important;
+    }
+
+    .separator {
+      color: var(--ed-on-surface, #666);
+      opacity: 0.6;
+      font-size: 16px;
+    }
+
+    .primary-btn {
+      background-color: var(--ed-primary, #1976d2) !important;
+      color: var(--ed-on-primary, #ffffff) !important;
+    }
+
+    .primary-btn:hover:not(:disabled) {
+      background-color: color-mix(in srgb, var(--ed-primary, #1976d2) 85%, #000) !important;
+    }
+
+    .primary-btn:disabled {
+      opacity: 0.5;
+    }
   `]
 })
 export class TableDialogComponent {
@@ -98,7 +182,6 @@ export class TableDialogComponent {
   maxRows: number;
   maxCols: number;
 
-  // Grid dimensions for visual selector
   readonly gridRows = Array(10).fill(0);
   readonly gridCols = Array(10).fill(0);
 
@@ -123,9 +206,7 @@ export class TableDialogComponent {
     this.cols = colIdx + 1;
   }
 
-  onGridLeave(): void {
-    // Keep current selection when leaving grid
-  }
+  onGridLeave(): void { }
 
   onCellClick(): void {
     if (this.isValid) {
