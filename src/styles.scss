@@ -1,11 +1,16 @@
-// ============================================
-// GLOBAL STYLES - styles.scss
-// Angular Material 13 + Custom Editor Overrides
-// ============================================
+/**
+ * Global Styles
+ * Path: src/styles.scss
+ *
+ * Angular Material 13 overrides and global editor styling.
+ * These styles complement component-level styles and handle
+ * cross-component concerns like menu panels and context menus.
+ */
 
-// ----------------------------------------
-// Editor Toolbar - Global Overrides
-// ----------------------------------------
+/* ============================================================
+   EDITOR TOOLBAR - GLOBAL OVERRIDES
+   Base toolbar configuration applied across all breakpoints
+   ============================================================ */
 
 .editor-toolbar.mat-toolbar {
   padding: 6px 8px;
@@ -13,10 +18,13 @@
   flex-wrap: wrap;
   height: auto;
   min-height: 44px;
-  align-items: center;
-  justify-content: flex-start;
   background-color: #fafafa;
   border-bottom: 1px solid #e0e0e0;
+
+  /* Flex alignment - critical for proper vertical centering */
+  align-items: center;
+  align-content: center;
+  justify-content: flex-start;
 
   .mat-icon-button {
     width: 36px;
@@ -37,15 +45,18 @@
   }
 }
 
-// ----------------------------------------
-// Responsive Breakpoints - Toolbar
-// ----------------------------------------
+/* ============================================================
+   RESPONSIVE BREAKPOINTS - TOOLBAR
+   Progressive size reduction for smaller viewports
+   ============================================================ */
 
-// Medium (tablets)
+/* Medium - Tablets (max-width: 1024px) */
 @media (max-width: 1024px) {
   .editor-toolbar.mat-toolbar {
     padding: 4px 6px;
     min-height: 40px;
+    align-items: center;
+    align-content: center;
 
     .mat-icon-button {
       width: 32px;
@@ -67,11 +78,13 @@
   }
 }
 
-// Small (phones landscape, small tablets)
+/* Small - Landscape phones / small tablets (max-width: 768px) */
 @media (max-width: 768px) {
   .editor-toolbar.mat-toolbar {
     padding: 4px;
     min-height: 38px;
+    align-items: center;
+    align-content: center;
 
     .mat-icon-button {
       width: 30px;
@@ -90,6 +103,7 @@
       height: 18px;
       margin: 0 2px;
 
+      /* Hide overflow dividers on smaller screens */
       &:nth-of-type(n + 4) {
         display: none;
       }
@@ -97,12 +111,14 @@
   }
 }
 
-// Extra small (phones)
+/* Extra small - Mobile phones (max-width: 480px) */
 @media (max-width: 480px) {
   .editor-toolbar.mat-toolbar {
     padding: 2px 4px;
     min-height: 36px;
     gap: 0;
+    align-items: center;
+    align-content: center;
 
     .mat-icon-button {
       width: 28px;
@@ -117,15 +133,17 @@
       }
     }
 
+    /* Hide all dividers on mobile for maximum space */
     mat-divider[vertical] {
       display: none;
     }
   }
 }
 
-// ----------------------------------------
-// Track Changes Toolbar - Responsive
-// ----------------------------------------
+/* ============================================================
+   TRACK CHANGES TOOLBAR - RESPONSIVE
+   Divider height adjustments for track changes section
+   ============================================================ */
 
 ed-track-changes-toolbar {
   .track-changes-buttons {
@@ -155,9 +173,10 @@ ed-track-changes-toolbar {
   }
 }
 
-// ----------------------------------------
-// Table Toolbar Menu - Responsive
-// ----------------------------------------
+/* ============================================================
+   TABLE TOOLBAR MENU - RESPONSIVE
+   Dropdown menu sizing for table operations
+   ============================================================ */
 
 .table-ops-menu.mat-menu-panel {
   .mat-menu-item {
@@ -191,45 +210,10 @@ ed-track-changes-toolbar {
   }
 }
 
-// ----------------------------------------
-// Tooltip Adjustments
-// ----------------------------------------
-
-.mat-tooltip {
-  font-size: 12px;
-
-  @media (max-width: 768px) {
-    font-size: 11px;
-  }
-}
-
-// ----------------------------------------
-// Track Changes Styles
-// ----------------------------------------
-
-.tc-insert {
-  cursor: help;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: rgba(0, 255, 0, 0.3) !important;
-    box-shadow: 0 0 0 2px rgba(0, 255, 0, 0.4) !important;
-  }
-}
-
-.tc-delete {
-  cursor: help;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: rgba(255, 0, 0, 0.2) !important;
-    box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.4) !important;
-  }
-}
-
-// ----------------------------------------
-// Track Changes Context Menu
-// ----------------------------------------
+/* ============================================================
+   TRACK CHANGES CONTEXT MENU
+   Right-click menu for accept/reject operations
+   ============================================================ */
 
 .mat-menu-panel.tc-context-menu-panel,
 .tc-context-menu .mat-menu-panel {
@@ -267,10 +251,70 @@ ed-track-changes-toolbar {
   margin: 4px 0 !important;
 }
 
+/* Accept/reject icon colors */
 .tc-accept-icon.mat-icon {
   color: #4caf50 !important;
 }
 
 .tc-reject-icon.mat-icon {
   color: #f44336 !important;
+}
+
+/* ============================================================
+   TABLE CONTEXT MENU
+   Right-click menu for table operations
+   ============================================================ */
+
+.table-context-menu.mat-menu-panel {
+  min-width: 160px;
+  border-radius: 8px;
+
+  .mat-menu-item {
+    height: 36px;
+    line-height: 36px;
+    font-size: 13px;
+
+    .mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-right: 10px;
+      color: rgba(0, 0, 0, 0.6);
+    }
+
+    &:hover .mat-icon {
+      color: rgba(0, 0, 0, 0.87);
+    }
+  }
+}
+
+/* ============================================================
+   IMAGE UPLOAD DIALOG
+   Modal dialog styling for image insertion
+   ============================================================ */
+
+.image-upload-dialog {
+  .mat-dialog-container {
+    border-radius: 12px;
+    padding: 0;
+    overflow: hidden;
+  }
+}
+
+/* ============================================================
+   TABLE DIALOGS
+   Modal dialogs for table creation and properties
+   ============================================================ */
+
+.table-insert-dialog,
+.table-properties-dialog,
+.cell-properties-dialog {
+  .mat-dialog-container {
+    border-radius: 12px;
+    padding: 0;
+  }
+
+  .mat-form-field {
+    width: 100%;
+  }
 }

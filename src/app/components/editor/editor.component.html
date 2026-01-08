@@ -1,52 +1,65 @@
-<mat-toolbar class="editor-toolbar">
-  <!-- Text Formatting Group -->
-  <ed-text-formatting-toolbar #textFormattingToolbar (commandExecuted)="onCommandExecuted()">
-  </ed-text-formatting-toolbar>
+<div class="editor-wrapper">
+  <!-- Toolbar: Editing Tools Only -->
+  <mat-toolbar class="editor-toolbar">
+    <!-- Text Formatting Group -->
+    <ed-text-formatting-toolbar #textFormattingToolbar (commandExecuted)="onCommandExecuted()">
+    </ed-text-formatting-toolbar>
 
-  <mat-divider vertical></mat-divider>
+    <mat-divider vertical></mat-divider>
 
-  <!-- Alignment Group -->
-  <ed-alignment-toolbar (commandExecuted)="onCommandExecuted()">
-  </ed-alignment-toolbar>
+    <!-- Alignment Group -->
+    <ed-alignment-toolbar (commandExecuted)="onCommandExecuted()">
+    </ed-alignment-toolbar>
 
-  <mat-divider vertical></mat-divider>
+    <mat-divider vertical></mat-divider>
 
-  <!-- List Group -->
-  <ed-list-toolbar (commandExecuted)="onCommandExecuted()">
-  </ed-list-toolbar>
+    <!-- List Group -->
+    <ed-list-toolbar (commandExecuted)="onCommandExecuted()">
+    </ed-list-toolbar>
 
-  <mat-divider vertical></mat-divider>
+    <mat-divider vertical></mat-divider>
 
-  <!-- History Group -->
-  <ed-history-toolbar #historyToolbar (commandExecuted)="onCommandExecuted()">
-  </ed-history-toolbar>
+    <!-- History Group -->
+    <ed-history-toolbar #historyToolbar (commandExecuted)="onCommandExecuted()">
+    </ed-history-toolbar>
 
-  <mat-divider vertical></mat-divider>
+    <mat-divider vertical></mat-divider>
 
-  <!-- Table Group -->
-  <ed-table-toolbar #tableToolbar (commandExecuted)="onCommandExecuted()">
-  </ed-table-toolbar>
+    <!-- Table Group -->
+    <ed-table-toolbar #tableToolbar (commandExecuted)="onCommandExecuted()">
+    </ed-table-toolbar>
 
-  <!-- Image Group -->
-  <ed-image-toolbar (commandExecuted)="onCommandExecuted()">
-  </ed-image-toolbar>
+    <!-- Image Group -->
+    <ed-image-toolbar (commandExecuted)="onCommandExecuted()">
+    </ed-image-toolbar>
 
-  <mat-divider vertical></mat-divider>
+    <mat-divider vertical></mat-divider>
 
-  <!-- Line Height Group -->
-  <ed-line-height-toolbar #lineHeightToolbar (commandExecuted)="onCommandExecuted()">
-  </ed-line-height-toolbar>
+    <!-- Line Height Group -->
+    <ed-line-height-toolbar #lineHeightToolbar (commandExecuted)="onCommandExecuted()">
+    </ed-line-height-toolbar>
 
-  <!-- Track Changes Toolbar -->
-  <ed-track-changes-toolbar [visible]="trackChangesVisible" (toggleTracking)="onToggleTrackChanges()"
-    (toggleShow)="onTrackChangesShow($event)" (acceptAll)="onAcceptAllChanges()" (rejectAll)="onRejectAllChanges()"
-    (acceptOne)="onAcceptOneChange()" (rejectOne)="onRejectOneChange()">
-  </ed-track-changes-toolbar>
-</mat-toolbar>
+    <!-- Track Changes Toolbar -->
+    <ed-track-changes-toolbar [visible]="trackChangesVisible" (toggleTracking)="onToggleTrackChanges()"
+      (toggleShow)="onTrackChangesShow($event)" (acceptAll)="onAcceptAllChanges()" (rejectAll)="onRejectAllChanges()"
+      (acceptOne)="onAcceptOneChange()" (rejectOne)="onRejectOneChange()">
+    </ed-track-changes-toolbar>
+  </mat-toolbar>
 
-<!-- Editor Content Area -->
-<div #editor contenteditable="true" appTrackChangesTooltip [attr.data-placeholder]="placeholder" [style.height]="height"
-  class="wysiwyg-editor">
+  <!-- Editor Content Area -->
+  <div #editor contenteditable="true" appTrackChangesTooltip [attr.data-placeholder]="placeholder"
+    [style.height]="height" class="wysiwyg-editor">
+  </div>
+
+  <!-- Footer: Word/Character Count & Settings -->
+  <div class="editor-footer">
+    <div class="footer-stats">
+      <span class="stat-item">{{ wordCount }} words</span>
+      <span class="stat-divider">|</span>
+      <span class="stat-item">{{ charCount }} chars</span>
+    </div>
+    <ed-theme-picker></ed-theme-picker>
+  </div>
 </div>
 
 <!-- Track Changes Context Menu (right-click menu) -->

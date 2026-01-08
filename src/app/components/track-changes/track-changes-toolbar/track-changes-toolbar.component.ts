@@ -1,3 +1,11 @@
+/**
+ * Track Changes Toolbar Component
+ * Path: src/app/components/track-changes/track-changes-toolbar/track-changes-toolbar.component.ts
+ * 
+ * Controls track changes: toggle tracking, visibility, accept/reject changes.
+ * Uses split button pattern with expandable accept/reject actions.
+ */
+
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -5,38 +13,60 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
 import { Subscription } from 'rxjs';
+import { animate, style, transition, trigger, state } from '@angular/animations';
 import { TrackChangesService } from 'src/app/services/track-changes';
 import { TrackChangesState } from 'src/app/entities/editor-config';
 
 @Component({
   selector: 'ed-track-changes-toolbar',
   standalone: true,
-  imports: [
-    CommonModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTooltipModule,
-    MatDividerModule
+  imports: [CommonModule, MatButtonModule, MatIconModule, MatTooltipModule, MatDividerModule],
+  animations: [
+    trigger('expandActions', [
+      transition(':enter', [
+        style({ width: 0, opacity: 0, transform: 'scaleX(0.8)' }),
+        animate('200ms cubic-bezier(0, 0, 0.3, 1)',
+          style({ width: '*', opacity: 1, transform: 'scaleX(1)' }))
+      ]),
+      transition(':leave', [
+        animate('150ms cubic-bezier(0.4, 0, 1, 1)',
+          style({ width: 0, opacity: 0, transform: 'scaleX(0.8)' }))
+      ])
+    ]),
+    trigger('iconSpin', [
+      transition('off => on', [
+        animate('280ms cubic-bezier(0.4, 0.14, 0.3, 1)', style({ transform: 'rotate(360deg)' }))
+      ])
+    ]),
+    trigger('badgeBounce', [
+      transition(':enter', [
+        style({ transform: 'scale(0)', opacity: 0 }),
+        animate('250ms cubic-bezier(0.34, 1.56, 0.64, 1)', style({ transform: 'scale(1)', opacity: 1 }))
+      ]),
+      transition(':increment', [
+        animate('120ms ease-out', style({ transform: 'scale(1.15)' })),
+        animate('180ms cubic-bezier(0.34, 1.56, 0.64, 1)', style({ transform: 'scale(1)' }))
+      ])
+    ])
   ],
   template: `
-    <!-- Track Changes Toolbar -->
-    <div class="track-changes-buttons">
-      <!-- Separator -->
-      <mat-divider vertical style="height: 40px;"></mat-divider>
-
-      <!-- Track Changes Toggle -->
+    <div class="track-changes-container" 
+         [class.expanded]="showAcceptReject"
+         (mouseenter)="onMouseEnter()"
+         (mouseleave)="onMouseLeave()">
+      
       <button
+        class="toggle-btn"
         [matTooltip]="getToggleTrackingTooltip()"
         mat-icon-button
         [class.active]="state.isEnabled"
         (click)="onToggleTracking()"
         type="button">
-        <mat-icon [style.color]="state.isEnabled ? '#4caf50' : ''">
+        <mat-icon [class.enabled]="state.isEnabled" [@iconSpin]="state.isEnabled ? 'on' : 'off'">
           {{ state.isEnabled ? 'track_changes' : 'edit_off' }}
         </mat-icon>
       </button>
 
-      <!-- Show/Hide Toggle (only enabled when tracking is on) -->
       <button
         [matTooltip]="getToggleShowTooltip()"
         mat-icon-button
@@ -47,207 +77,143 @@ import { TrackChangesState } from 'src/app/entities/editor-config';
         <mat-icon>{{ state.isVisible ? 'visibility' : 'visibility_off' }}</mat-icon>
       </button>
 
-      <mat-divider vertical style="height: 40px;" *ngIf="state.pendingCount > 0"></mat-divider>
+      <ng-container *ngIf="state.pendingCount > 0">
+        <div class="divider-line"></div>
+        
+        <div class="split-action accept-group">
+          <button mat-icon-button class="accept-btn" [matTooltip]="'Accept Change at Cursor'" (click)="onAcceptOne()" type="button">
+            <mat-icon>check</mat-icon>
+          </button>
+          <button *ngIf="showAcceptReject" [@expandActions] mat-icon-button class="accept-btn"
+                  [matTooltip]="'Accept All (' + state.pendingCount + ')'" (click)="onAcceptAll()" type="button">
+            <mat-icon>done_all</mat-icon>
+          </button>
+        </div>
 
-      <!-- Accept All -->
-      <button
-        [matTooltip]="getAcceptAllTooltip()"
-        mat-icon-button
-        [disabled]="state.pendingCount === 0"
-        (click)="onAcceptAll()"
-        type="button">
-        <mat-icon [style.color]="state.pendingCount > 0 ? '#4caf50' : ''">done_all</mat-icon>
-      </button>
+        <div class="split-action reject-group">
+          <button mat-icon-button class="reject-btn" [matTooltip]="'Reject Change at Cursor'" (click)="onRejectOne()" type="button">
+            <mat-icon>close</mat-icon>
+          </button>
+          <button *ngIf="showAcceptReject" [@expandActions] mat-icon-button class="reject-btn"
+                  [matTooltip]="'Reject All (' + state.pendingCount + ')'" (click)="onRejectAll()" type="button">
+            <mat-icon>clear_all</mat-icon>
+          </button>
+        </div>
 
-      <!-- Reject All -->
-      <button
-        [matTooltip]="getRejectAllTooltip()"
-        mat-icon-button
-        [disabled]="state.pendingCount === 0"
-        (click)="onRejectAll()"
-        type="button">
-        <mat-icon [style.color]="state.pendingCount > 0 ? '#f44336' : ''">clear_all</mat-icon>
-      </button>
-
-      <!-- Accept One (at cursor/selection) -->
-      <button
-        [matTooltip]="getAcceptOneTooltip()"
-        mat-icon-button
-        [disabled]="state.pendingCount === 0"
-        (click)="onAcceptOne()"
-        type="button">
-        <mat-icon [style.color]="state.pendingCount > 0 ? '#4caf50' : ''">check_circle_outline</mat-icon>
-      </button>
-
-      <!-- Reject One (at cursor/selection) -->
-      <button
-        [matTooltip]="getRejectOneTooltip()"
-        mat-icon-button
-        [disabled]="state.pendingCount === 0"
-        (click)="onRejectOne()"
-        type="button">
-        <mat-icon [style.color]="state.pendingCount > 0 ? '#f44336' : ''">highlight_off</mat-icon>
-      </button>
-
-      <!-- Pending Count Badge -->
-      <div class="pending-badge" *ngIf="state.pendingCount > 0">
-        <span class="badge-text">{{ state.pendingCount }}</span>
-      </div>
+        <div class="pending-badge" [@badgeBounce]="state.pendingCount">{{ state.pendingCount }}</div>
+      </ng-container>
     </div>
   `,
   styles: [`
-    .track-changes-buttons {
+    :host { display: flex; align-items: center; }
+
+    .track-changes-container {
       display: flex;
       align-items: center;
-      gap: 4px;
-      position: relative;
+      gap: var(--ed-group-gap, 2px);
+      padding: var(--ed-group-padding, 4px);
+      background: var(--ed-primary-surface, #ede7f6);
+      border-radius: var(--ed-radius-pill, 24px);
+      box-shadow: var(--ed-shadow-soft);
+      transition: 
+        box-shadow var(--ed-duration-normal, 200ms) var(--ed-easing-standard),
+        padding var(--ed-duration-normal, 200ms) var(--ed-easing-standard);
     }
 
+    .track-changes-container:hover,
+    .track-changes-container.expanded {
+      box-shadow: var(--ed-shadow-elevated);
+    }
+
+    button {
+      border-radius: var(--ed-radius-button, 12px) !important;
+      transition: 
+        background-color var(--ed-duration-normal, 200ms) var(--ed-easing-standard),
+        color var(--ed-duration-normal, 200ms) var(--ed-easing-standard),
+        transform var(--ed-duration-normal, 200ms) var(--ed-easing-spring);
+    }
+
+    button:hover:not(:disabled) { transform: scale(1.05); }
+    button:active:not(:disabled) { transform: scale(0.95); transition: transform var(--ed-duration-fast, 120ms) var(--ed-easing-standard); }
+    button.active { background-color: var(--ed-button-active-bg) !important; }
+    button:disabled { opacity: 0.38; }
+
+    .mat-icon.enabled { color: var(--ed-success, #4caf50) !important; }
+    .divider-line { width: 1px; height: 24px; background: rgba(0, 0, 0, 0.12); margin: 0 4px; }
+    .split-action { display: flex; align-items: center; gap: 1px; }
+
+    .accept-btn:not(:disabled) { color: var(--ed-success, #4caf50); }
+    .accept-btn:hover:not(:disabled) { background-color: rgba(76, 175, 80, 0.12) !important; }
+    .reject-btn:not(:disabled) { color: var(--ed-error, #f44336); }
+    .reject-btn:hover:not(:disabled) { background-color: rgba(244, 67, 54, 0.12) !important; }
+
     .pending-badge {
-      background-color: #f44336;
-      color: white;
-      border-radius: 12px;
-      padding: 2px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      background: var(--ed-primary, #7c4dff);
+      color: var(--ed-on-primary, #fff);
+      border-radius: 10px;
       font-size: 11px;
       font-weight: 600;
       margin-left: 4px;
-      min-width: 20px;
-      text-align: center;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      animation: pulse 2s infinite;
-    }
-
-    .badge-text {
-      display: inline-block;
-    }
-
-    @keyframes pulse {
-      0%, 100% {
-        transform: scale(1);
-      }
-      50% {
-        transform: scale(1.05);
-      }
-    }
-
-    button.active {
-      background-color: rgba(76, 175, 80, 0.1);
-    }
-
-    button:disabled {
-      opacity: 0.4;
-    }
-
-    button:not(:disabled):hover {
-      background-color: rgba(0, 0, 0, 0.05);
-    }
-
-    mat-icon {
-      transition: color 0.2s ease;
     }
   `]
 })
 export class TrackChangesToolbarComponent implements OnInit, OnDestroy {
   @Input() visible = true;
-  @Output() toggleShow = new EventEmitter<boolean>();
+
   @Output() toggleTracking = new EventEmitter<void>();
+  @Output() toggleShow = new EventEmitter<boolean>();
   @Output() acceptAll = new EventEmitter<void>();
   @Output() rejectAll = new EventEmitter<void>();
   @Output() acceptOne = new EventEmitter<void>();
   @Output() rejectOne = new EventEmitter<void>();
 
-  state: TrackChangesState = {
-    isEnabled: false,
-    isVisible: true,
-    changes: [],
-    pendingCount: 0
-  };
-
-  private subscription: Subscription = new Subscription();
+  state: TrackChangesState = { isEnabled: false, isVisible: true, changes: [], pendingCount: 0 };
+  showAcceptReject = false;
+  private hoverTimeout: any;
+  private subscription = new Subscription();
 
   constructor(private trackChangesService: TrackChangesService) { }
 
   ngOnInit(): void {
-    this.subscription = this.trackChangesService.getState().subscribe(state => {
-      this.state = state;
-      this.visible = state.isVisible;
-    });
+    this.subscription.add(
+      this.trackChangesService.getState().subscribe(s => this.state = s)
+    );
   }
 
   ngOnDestroy(): void {
     this.subscription.unsubscribe();
+    if (this.hoverTimeout) clearTimeout(this.hoverTimeout);
   }
 
-  /**
-   * Updated tooltip matching CKEditor Lite plugin behavior.
-   * Informs user they must resolve pending changes before disabling.
-   */
-  getToggleTrackingTooltip(): string {
-    if (!this.state.isEnabled) {
-      return 'Start Tracking Changes';
-    }
-
-    // When enabled with pending changes, inform user they must resolve first
+  onMouseEnter(): void {
     if (this.state.pendingCount > 0) {
-      const plural = this.state.pendingCount > 1 ? 's' : '';
-      return `Stop Tracking (Resolve ${this.state.pendingCount} pending change${plural} first)`;
+      this.hoverTimeout = setTimeout(() => this.showAcceptReject = true, 150);
     }
+  }
 
-    return 'Stop Tracking Changes';
+  onMouseLeave(): void {
+    if (this.hoverTimeout) clearTimeout(this.hoverTimeout);
+    this.showAcceptReject = false;
+  }
+
+  getToggleTrackingTooltip(): string {
+    return this.state.isEnabled ? 'Disable Track Changes' : 'Enable Track Changes';
   }
 
   getToggleShowTooltip(): string {
-    return this.state.isVisible
-      ? `Hide Tracked Changes (${this.state.pendingCount} pending)`
-      : `Show Tracked Changes (${this.state.pendingCount} pending)`;
+    return this.state.isVisible ? 'Hide Changes' : 'Show Changes';
   }
 
-  getAcceptAllTooltip(): string {
-    return this.state.pendingCount > 0
-      ? `Accept All Changes (${this.state.pendingCount})`
-      : 'Accept All Changes (No pending changes)';
-  }
-
-  getRejectAllTooltip(): string {
-    return this.state.pendingCount > 0
-      ? `Reject All Changes (${this.state.pendingCount})`
-      : 'Reject All Changes (No pending changes)';
-  }
-
-  getAcceptOneTooltip(): string {
-    return this.state.pendingCount > 0
-      ? 'Accept Selected Change'
-      : 'Accept Selected Change (No pending changes)';
-  }
-
-  getRejectOneTooltip(): string {
-    return this.state.pendingCount > 0
-      ? 'Reject Selected Change'
-      : 'Reject Selected Change (No pending changes)';
-  }
-
-  onToggleTracking(): void {
-    this.toggleTracking.emit();
-  }
-
-  onToggleShow(): void {
-    const newVisibility = !this.state.isVisible;
-    this.toggleShow.emit(newVisibility);
-  }
-
-  onAcceptAll(): void {
-    this.acceptAll.emit();
-  }
-
-  onRejectAll(): void {
-    this.rejectAll.emit();
-  }
-
-  onAcceptOne(): void {
-    this.acceptOne.emit();
-  }
-
-  onRejectOne(): void {
-    this.rejectOne.emit();
-  }
+  onToggleTracking(): void { this.toggleTracking.emit(); }
+  onToggleShow(): void { this.toggleShow.emit(!this.state.isVisible); }
+  onAcceptAll(): void { this.acceptAll.emit(); }
+  onRejectAll(): void { this.rejectAll.emit(); }
+  onAcceptOne(): void { this.acceptOne.emit(); }
+  onRejectOne(): void { this.rejectOne.emit(); }
 }

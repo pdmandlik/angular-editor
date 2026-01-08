@@ -1,436 +1,583 @@
-// ============================================
-// EDITOR COMPONENT STYLES - editor.component.scss
-// ============================================
-
-// ----------------------------------------
-// CSS Variables for Toolbar Customization
-// ----------------------------------------
+/**
+ * Editor Component Styles
+ * Path: src/app/components/editor/editor.component.scss
+ *
+ * Runtime theming via CSS custom properties (--ed-* tokens).
+ * Handles toolbar layout, button groups, track changes styling, and responsive breakpoints.
+ */
 
 :host {
-  --toolbar-button-size: 36px;
-  --toolbar-icon-size: 20px;
-  --toolbar-gap: 2px;
-  --toolbar-padding: 6px 8px;
-  --divider-height: 24px;
-  --toolbar-min-height: 44px;
+  display: block;
 }
 
-// ----------------------------------------
-// Toolbar Container
-// ----------------------------------------
+/* ============================================================
+   KEYFRAME ANIMATIONS
+   Entrance animations for toolbar groups and fade effects
+   ============================================================ */
 
-::ng-deep mat-toolbar.mat-toolbar {
-  min-height: var(--toolbar-min-height) !important;
-  padding: var(--toolbar-padding) !important;
-  gap: var(--toolbar-gap) !important;
+@keyframes groupSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================================================
+   EDITOR WRAPPER
+   Main container with rounded corners and focus state
+   ============================================================ */
+
+.editor-wrapper {
+  position: relative;
+  border-radius: var(--ed-radius-container, 16px);
+  box-shadow: var(--ed-shadow-soft);
+  overflow: hidden;
+  background: var(--ed-button-bg, #ffffff);
+  transition: box-shadow var(--ed-duration-slow, 320ms) var(--ed-easing-decelerate);
+
+  &:focus-within {
+    box-shadow: var(--ed-shadow-elevated), var(--ed-shadow-focused);
+  }
+}
+
+/* ============================================================
+   TOOLBAR BASE STYLES
+   Mat-toolbar configuration with flex-wrap for responsive layout
+   ============================================================ */
+
+::ng-deep mat-toolbar.mat-toolbar.editor-toolbar {
+  min-height: 56px;
+  padding: var(--ed-toolbar-padding, 12px 16px);
+  gap: var(--ed-toolbar-gap, 12px);
   flex-wrap: wrap;
-  height: auto !important;
-  transition: padding 0.2s ease, gap 0.2s ease;
+  height: auto;
+  background: var(--ed-surface, #f5f3f7);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+
+  /* Critical for vertical centering when toolbar wraps to multiple rows */
+  align-items: center;
+  align-content: center;
+
+  transition:
+    background-color var(--ed-duration-slow, 320ms) var(--ed-easing-decelerate),
+    padding var(--ed-duration-normal, 200ms) var(--ed-easing-standard);
 }
 
-// ----------------------------------------
-// Toolbar Icon Buttons
-// ----------------------------------------
+/* ============================================================
+   TOOLBAR BUTTON GROUPS
+   Pill-shaped containers for related toolbar actions
+   ============================================================ */
 
-::ng-deep mat-toolbar {
+::ng-deep mat-toolbar.editor-toolbar {
 
-  .mat-icon-button,
-  button[mat-icon-button] {
-    width: var(--toolbar-button-size) !important;
-    height: var(--toolbar-button-size) !important;
-    line-height: var(--toolbar-button-size) !important;
-    padding: 0 !important;
-    flex-shrink: 0;
-    transition: background-color 0.15s ease, transform 0.1s ease;
-
-    &:hover:not(:disabled) {
-      background-color: rgba(0, 0, 0, 0.06);
-    }
-
-    &:active:not(:disabled) {
-      transform: scale(0.95);
-    }
-
-    .mat-icon {
-      font-size: var(--toolbar-icon-size) !important;
-      width: var(--toolbar-icon-size) !important;
-      height: var(--toolbar-icon-size) !important;
-      line-height: var(--toolbar-icon-size) !important;
-    }
-  }
-
-  button.active {
-    background-color: rgba(0, 0, 0, 0.1) !important;
-  }
-}
-
-// ----------------------------------------
-// Vertical Dividers
-// ----------------------------------------
-
-::ng-deep mat-toolbar mat-divider[vertical] {
-  height: var(--divider-height) !important;
-  margin: 0 4px !important;
-}
-
-// ----------------------------------------
-// Toolbar Groups (Child Components)
-// ----------------------------------------
-
-::ng-deep mat-toolbar {
-
+  /* All toolbar component hosts - unified alignment */
   ed-text-formatting-toolbar,
   ed-alignment-toolbar,
   ed-list-toolbar,
   ed-history-toolbar,
   ed-table-toolbar,
   ed-image-toolbar,
-  ed-line-height-toolbar,
-  ed-track-changes-toolbar {
-    display: flex;
+  ed-line-height-toolbar {
+    display: inline-flex;
     align-items: center;
-    gap: var(--toolbar-gap);
-    flex-shrink: 0;
-  }
-}
+    vertical-align: middle;
+    gap: var(--ed-group-gap, 2px);
+    padding: var(--ed-group-padding, 4px);
+    background: var(--ed-button-bg, #ffffff);
+    border-radius: var(--ed-radius-pill, 24px);
+    box-shadow: var(--ed-shadow-soft);
+    animation: groupSlideIn var(--ed-duration-enter, 400ms) var(--ed-easing-decelerate) both;
+    transition:
+      box-shadow var(--ed-duration-normal, 200ms) var(--ed-easing-standard),
+      transform var(--ed-duration-normal, 200ms) var(--ed-easing-emphasized);
 
-// ----------------------------------------
-// Responsive Breakpoints
-// ----------------------------------------
+    &:hover {
+      box-shadow: var(--ed-shadow-elevated);
+    }
 
-// Medium screens (tablets)
-@media (max-width: 1024px) {
-  :host {
-    --toolbar-button-size: 32px;
-    --toolbar-icon-size: 18px;
-    --toolbar-gap: 1px;
-    --toolbar-padding: 4px 6px;
-    --divider-height: 20px;
-    --toolbar-min-height: 40px;
-  }
-}
-
-// Small screens (large phones, small tablets)
-@media (max-width: 768px) {
-  :host {
-    --toolbar-button-size: 30px;
-    --toolbar-icon-size: 16px;
-    --toolbar-gap: 1px;
-    --toolbar-padding: 4px;
-    --divider-height: 18px;
-    --toolbar-min-height: 38px;
+    /* Staggered entrance animation for each group */
+    @for $i from 1 through 8 {
+      &:nth-child(#{$i}) {
+        animation-delay: #{$i * 40}ms;
+      }
+    }
   }
 
-  ::ng-deep mat-toolbar mat-divider[vertical]:nth-of-type(n + 4) {
-    display: none;
-  }
-}
+  /* Track changes toolbar - special handling for split button pattern */
+  ed-track-changes-toolbar {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
 
-// Extra small screens (phones)
-@media (max-width: 480px) {
-  :host {
-    --toolbar-button-size: 28px;
-    --toolbar-icon-size: 16px;
-    --toolbar-gap: 0px;
-    --toolbar-padding: 2px 4px;
-    --divider-height: 16px;
-    --toolbar-min-height: 36px;
+    .track-changes-buttons,
+    .track-changes-container {
+      display: flex;
+      align-items: center;
+      gap: var(--ed-group-gap, 2px);
+      padding: var(--ed-group-padding, 4px);
+      background: var(--ed-button-bg, #ffffff);
+      border-radius: var(--ed-radius-pill, 24px);
+      box-shadow: var(--ed-shadow-soft);
+      transition: box-shadow var(--ed-duration-normal, 200ms) var(--ed-easing-standard);
+
+      &:hover {
+        box-shadow: var(--ed-shadow-elevated);
+      }
+    }
   }
 
-  ::ng-deep mat-toolbar mat-divider[vertical] {
-    display: none !important;
-  }
+  /* Button styles within groups */
+  .mat-icon-button,
+  button[mat-icon-button] {
+    width: var(--ed-button-size, 36px) !important;
+    height: var(--ed-button-size, 36px) !important;
+    line-height: var(--ed-button-size, 36px) !important;
+    border-radius: var(--ed-radius-button, 12px) !important;
+    transition:
+      background-color var(--ed-duration-normal, 200ms) var(--ed-easing-standard),
+      color var(--ed-duration-normal, 200ms) var(--ed-easing-standard),
+      transform var(--ed-duration-normal, 200ms) var(--ed-easing-spring);
 
-  ::ng-deep mat-toolbar {
-    ed-track-changes-toolbar .mat-icon-button:not(.active):not(:hover) {
-      opacity: 0.85;
+    .mat-icon {
+      font-size: var(--ed-icon-size, 20px) !important;
+      width: var(--ed-icon-size, 20px) !important;
+      height: var(--ed-icon-size, 20px) !important;
+      line-height: var(--ed-icon-size, 20px) !important;
+    }
+
+    &:hover:not(:disabled) {
+      background-color: var(--ed-button-hover) !important;
+      color: var(--ed-primary) !important;
+      transform: scale(1.05);
+    }
+
+    &:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+
+    &.active {
+      background-color: var(--ed-button-active-bg) !important;
+      color: var(--ed-primary) !important;
+    }
+
+    &:disabled {
+      opacity: 0.38;
+      transform: none !important;
     }
   }
 }
 
-// ----------------------------------------
-// Compact Mode (Optional Class Toggle)
-// ----------------------------------------
-
-:host.compact-toolbar {
-  --toolbar-button-size: 28px;
-  --toolbar-icon-size: 16px;
-  --toolbar-gap: 1px;
-  --toolbar-padding: 4px;
-  --divider-height: 18px;
-  --toolbar-min-height: 36px;
-}
-
-// ============================================
-// EDITOR CONTENT AREA
-// ============================================
+/* ============================================================
+   WYSIWYG EDITOR CONTENT AREA
+   Editable region with placeholder support
+   ============================================================ */
 
 .wysiwyg-editor {
-  line-height: 1.5;
-  padding: 16px;
-  border-radius: 4px;
-  margin-top: 8px;
+  padding: 20px 24px;
+  min-height: 200px;
   outline: none;
-  overflow-y: auto;
-  min-height: 100px;
-  background-color: #fff;
-
-  // Light border always visible
-  border: 1px solid #e0e0e0;
-  transition: border-color 0.2s ease;
-
-  // Slightly darker on focus
-  &:focus {
-    border-color: #bdbdbd;
-  }
-}
-
-// Placeholder styling
-.wysiwyg-editor:empty:before {
-  content: attr(data-placeholder);
-  color: #999;
-  pointer-events: none;
-}
-
-// Active button state
-:host ::ng-deep button.active {
-  background-color: rgba(0, 0, 0, 0.1);
-}
-
-// ============================================
-// LINE HEIGHT UTILITIES
-// ============================================
-
-:host ::ng-deep .line-height-1-0 {
-  line-height: 1 !important;
-}
-
-:host ::ng-deep .line-height-1-2 {
-  line-height: 1.2 !important;
-}
-
-:host ::ng-deep .line-height-1-5 {
-  line-height: 1.5 !important;
-}
-
-:host ::ng-deep .line-height-1-8 {
-  line-height: 1.8 !important;
-}
-
-:host ::ng-deep .line-height-2-0 {
-  line-height: 2 !important;
-}
-
-:host ::ng-deep .line-height-2-5 {
-  line-height: 2.5 !important;
-}
-
-:host ::ng-deep .line-height-3-0 {
-  line-height: 3 !important;
-}
-
-// ============================================
-// TABLE GRID OVERLAY
-// ============================================
-
-.table-button-container {
-  position: relative;
-  display: inline-block;
-}
-
-.table-grid-overlay {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
-  margin-top: 8px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e0e0e0;
-  padding: 16px;
-  min-width: 280px;
-
-  @media (max-width: 480px) {
-    left: auto;
-    right: 0;
-    transform: none;
-    min-width: 240px;
-  }
-}
-
-.table-grid-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.grid-preview {
   font-size: 16px;
-  font-weight: 500;
-  color: #1976d2;
-  padding: 4px 8px;
-  background-color: #f5f5f5;
-  border-radius: 4px;
-  min-width: 60px;
-  text-align: center;
-}
+  line-height: 1.6;
+  color: var(--ed-on-surface, #1a1a1a);
+  background: var(--ed-button-bg, #ffffff);
+  overflow-y: auto;
 
-.table-grid {
-  display: inline-block;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  overflow: hidden;
-}
-
-.grid-row {
-  display: flex;
-}
-
-.grid-cell {
-  width: 20px;
-  height: 20px;
-  border: 1px solid #eee;
-  background-color: #fafafa;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-
-  &:hover {
-    background-color: #1976d2;
+  /* Placeholder styling */
+  &:empty::before {
+    content: attr(data-placeholder);
+    color: var(--ed-on-surface, #1a1a1a);
+    opacity: 0.4;
+    pointer-events: none;
   }
-
-  &.selected {
-    background-color: #1976d2;
-    border-color: #0d47a1;
-    box-shadow: inset 0 0 0 1px #0d47a1;
-  }
-
-  &:hover:not(.selected) {
-    background-color: #e3f2fd;
-  }
-}
-
-.grid-footer {
-  font-size: 12px;
-  color: #666;
-  text-align: center;
-  margin-top: 8px;
-}
-
-// ============================================
-// LINE HEIGHT GRID OVERLAY
-// ============================================
-
-.line-height-button-container {
-  position: relative;
-  display: inline-block;
-}
-
-.line-height-grid-overlay {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
-  margin-top: 8px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e0e0e0;
-  padding: 8px;
-  min-width: 60px;
-
-  @media (max-width: 480px) {
-    left: auto;
-    right: 0;
-    transform: none;
-  }
-}
-
-.line-height-grid-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.grid-title {
-  font-size: 12px;
-  font-weight: 500;
-  color: #666;
-  margin: 0;
-}
-
-.line-height-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.height-option {
-  width: 40px;
-  height: 24px;
-  background-color: #fafafa;
-  border: 1px solid #eee;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  border-radius: 4px;
-
-  &:hover {
-    background-color: #e3f2fd;
-    border-color: #1976d2;
-  }
-
-  &.selected {
-    background-color: #1976d2;
-    color: white;
-    border-color: #0d47a1;
-  }
-}
-
-// ============================================
-// EDITOR RESPONSIVE ADJUSTMENTS
-// ============================================
-
-@media (max-width: 768px) {
-  .wysiwyg-editor {
-    padding: 12px;
-    margin-top: 6px;
-  }
-}
-
-@media (max-width: 480px) {
-  .wysiwyg-editor {
-    padding: 10px;
-    margin-top: 4px;
-    border-radius: 2px;
-  }
-}
-
-// ============================================
-// OPTIONAL STATES
-// ============================================
-
-// Error state
-.wysiwyg-editor.has-error {
-  border-color: #ef9a9a !important;
 
   &:focus {
-    border-color: #e57373 !important;
+    outline: none;
   }
 }
 
-// Disabled state
-.wysiwyg-editor[contenteditable='false'],
-.wysiwyg-editor.disabled {
-  background-color: #fafafa;
-  cursor: not-allowed;
-  opacity: 0.7;
+/* ============================================================
+   TRACK CHANGES STYLING
+   Visual indicators for insertions and deletions
+   ============================================================ */
+
+::ng-deep .tc-insert {
+  background-color: color-mix(in srgb, var(--ed-success) 15%, transparent);
+  color: color-mix(in srgb, var(--ed-success) 80%, #000);
+}
+
+::ng-deep .tc-delete {
+  background-color: color-mix(in srgb, var(--ed-error) 15%, transparent);
+  text-decoration: line-through;
+  color: color-mix(in srgb, var(--ed-error) 80%, #000);
+}
+
+/* ============================================================
+   MENU PANEL STYLES
+   Dropdown menus with themed appearance
+   ============================================================ */
+
+::ng-deep .mat-menu-panel {
+  border-radius: var(--ed-radius-menu, 16px) !important;
+  box-shadow: var(--ed-shadow-elevated) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  animation: fadeIn var(--ed-duration-normal, 200ms) var(--ed-easing-decelerate);
+
+  .mat-menu-content {
+    padding: 8px !important;
+  }
+
+  .mat-menu-item {
+    border-radius: calc(var(--ed-radius-menu, 16px) / 2);
+    margin: 2px 0;
+    transition: background-color var(--ed-duration-normal, 200ms) var(--ed-easing-standard);
+
+    &:hover {
+      background-color: var(--ed-button-hover);
+    }
+  }
+}
+
+/* Line height picker overlay */
+::ng-deep .line-height-grid-overlay {
+  border-radius: var(--ed-radius-menu, 16px) !important;
+  box-shadow: var(--ed-shadow-elevated) !important;
+  background: var(--ed-button-bg, #fff);
+  animation: fadeIn var(--ed-duration-normal, 200ms) var(--ed-easing-decelerate);
+
+  .line-height-grid-container {
+    border-radius: var(--ed-radius-menu, 16px);
+
+    .grid-title {
+      color: var(--ed-on-surface);
+      opacity: 0.7;
+    }
+
+    .height-option {
+      border-radius: calc(var(--ed-radius-button, 12px) / 2);
+      color: var(--ed-on-surface);
+      transition:
+        background-color var(--ed-duration-normal, 200ms) var(--ed-easing-standard),
+        color var(--ed-duration-normal, 200ms) var(--ed-easing-standard),
+        transform var(--ed-duration-normal, 200ms) var(--ed-easing-spring);
+
+      &:hover {
+        background-color: var(--ed-button-hover);
+        color: var(--ed-primary);
+        transform: scale(1.02);
+      }
+
+      &.selected {
+        background-color: var(--ed-button-active-bg);
+        color: var(--ed-primary);
+      }
+    }
+  }
+}
+
+/* ============================================================
+   EDITOR FOOTER
+   Compact status bar with word/char count and theme picker
+   ============================================================ */
+
+.editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px;
+  background: var(--ed-surface, #f5f3f7);
+  border-top: 1px solid color-mix(in srgb, var(--ed-on-surface, #1a1a1a) 8%, transparent);
+  min-height: 32px;
+  transition: background-color var(--ed-duration-slow, 320ms) var(--ed-easing-decelerate);
+
+  .footer-stats {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--ed-on-surface, #1a1a1a);
+    opacity: 0.55;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+
+    .stat-divider {
+      opacity: 0.4;
+    }
+  }
+
+  /* Theme picker container alignment */
+  ed-theme-picker {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+  }
+
+  /* Compact theme picker button */
+  ::ng-deep ed-theme-picker {
+    .theme-picker-container {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .theme-trigger {
+      width: 26px !important;
+      height: 26px !important;
+      line-height: 26px !important;
+      background: var(--ed-button-bg, #ffffff);
+      box-shadow: var(--ed-shadow-soft);
+
+      .mat-icon {
+        font-size: 16px !important;
+        width: 16px !important;
+        height: 16px !important;
+        line-height: 16px !important;
+      }
+
+      &:hover {
+        box-shadow: var(--ed-shadow-elevated);
+      }
+    }
+  }
+}
+
+/* ============================================================
+   RESPONSIVE BREAKPOINTS
+   Progressive size reduction for smaller screens
+   ============================================================ */
+
+/* Tablets (max-width: 1024px) */
+@media (max-width: 1024px) {
+  .editor-wrapper {
+    border-radius: 12px;
+  }
+
+  ::ng-deep mat-toolbar.mat-toolbar.editor-toolbar {
+    padding: 10px 12px;
+    gap: 8px;
+    min-height: 52px;
+    align-items: center;
+    align-content: center;
+  }
+
+  ::ng-deep mat-toolbar.editor-toolbar {
+
+    ed-text-formatting-toolbar,
+    ed-alignment-toolbar,
+    ed-list-toolbar,
+    ed-history-toolbar,
+    ed-table-toolbar,
+    ed-image-toolbar,
+    ed-line-height-toolbar,
+    ed-track-changes-toolbar .track-changes-buttons,
+    ed-track-changes-toolbar .track-changes-container {
+      border-radius: 20px;
+      padding: 3px;
+    }
+
+    .mat-icon-button,
+    button[mat-icon-button] {
+      width: 34px !important;
+      height: 34px !important;
+      line-height: 34px !important;
+      border-radius: 10px !important;
+
+      .mat-icon {
+        font-size: 18px !important;
+        width: 18px !important;
+        height: 18px !important;
+        line-height: 18px !important;
+      }
+    }
+  }
+
+  .wysiwyg-editor {
+    padding: 16px 20px;
+  }
+
+  .editor-footer {
+    padding: 4px 10px;
+    min-height: 30px;
+
+    .footer-stats {
+      font-size: 10px;
+    }
+
+    ::ng-deep ed-theme-picker .theme-trigger {
+      width: 24px !important;
+      height: 24px !important;
+      line-height: 24px !important;
+
+      .mat-icon {
+        font-size: 14px !important;
+        width: 14px !important;
+        height: 14px !important;
+        line-height: 14px !important;
+      }
+    }
+  }
+}
+
+/* Small tablets / landscape phones (max-width: 768px) */
+@media (max-width: 768px) {
+  .editor-wrapper {
+    border-radius: 10px;
+  }
+
+  ::ng-deep mat-toolbar.mat-toolbar.editor-toolbar {
+    padding: 8px 10px;
+    gap: 6px;
+    min-height: 48px;
+    align-items: center;
+    align-content: center;
+  }
+
+  ::ng-deep mat-toolbar.editor-toolbar {
+
+    ed-text-formatting-toolbar,
+    ed-alignment-toolbar,
+    ed-list-toolbar,
+    ed-history-toolbar,
+    ed-table-toolbar,
+    ed-image-toolbar,
+    ed-line-height-toolbar,
+    ed-track-changes-toolbar .track-changes-buttons,
+    ed-track-changes-toolbar .track-changes-container {
+      border-radius: 16px;
+      padding: 2px;
+    }
+
+    .mat-icon-button,
+    button[mat-icon-button] {
+      width: 32px !important;
+      height: 32px !important;
+      line-height: 32px !important;
+      border-radius: 8px !important;
+
+      .mat-icon {
+        font-size: 16px !important;
+        width: 16px !important;
+        height: 16px !important;
+        line-height: 16px !important;
+      }
+    }
+  }
+
+  .wysiwyg-editor {
+    padding: 14px 16px;
+    font-size: 15px;
+  }
+
+  .editor-footer {
+    padding: 3px 8px;
+    min-height: 28px;
+
+    .footer-stats {
+      font-size: 10px;
+      gap: 4px;
+    }
+
+    ::ng-deep ed-theme-picker .theme-trigger {
+      width: 24px !important;
+      height: 24px !important;
+      line-height: 24px !important;
+
+      .mat-icon {
+        font-size: 14px !important;
+        width: 14px !important;
+        height: 14px !important;
+        line-height: 14px !important;
+      }
+    }
+  }
+}
+
+/* Mobile phones (max-width: 480px) */
+@media (max-width: 480px) {
+  .editor-wrapper {
+    border-radius: 8px;
+  }
+
+  ::ng-deep mat-toolbar.mat-toolbar.editor-toolbar {
+    padding: 6px 8px;
+    gap: 4px;
+    min-height: 44px;
+    align-items: center;
+    align-content: center;
+  }
+
+  ::ng-deep mat-toolbar.editor-toolbar {
+
+    ed-text-formatting-toolbar,
+    ed-alignment-toolbar,
+    ed-list-toolbar,
+    ed-history-toolbar,
+    ed-table-toolbar,
+    ed-image-toolbar,
+    ed-line-height-toolbar,
+    ed-track-changes-toolbar .track-changes-buttons,
+    ed-track-changes-toolbar .track-changes-container {
+      border-radius: 14px;
+      padding: 2px;
+    }
+
+    .mat-icon-button,
+    button[mat-icon-button] {
+      width: 30px !important;
+      height: 30px !important;
+      line-height: 30px !important;
+      border-radius: 6px !important;
+
+      .mat-icon {
+        font-size: 16px !important;
+        width: 16px !important;
+        height: 16px !important;
+        line-height: 16px !important;
+      }
+    }
+  }
+
+  .wysiwyg-editor {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
+  .editor-footer {
+    padding: 2px 6px;
+    min-height: 26px;
+
+    .footer-stats {
+      font-size: 9px;
+      gap: 4px;
+    }
+
+    ::ng-deep ed-theme-picker .theme-trigger {
+      width: 22px !important;
+      height: 22px !important;
+      line-height: 22px !important;
+
+      .mat-icon {
+        font-size: 14px !important;
+        width: 14px !important;
+        height: 14px !important;
+        line-height: 14px !important;
+      }
+    }
+  }
 }
