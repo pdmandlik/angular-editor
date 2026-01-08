@@ -1,4 +1,4 @@
-<mat-toolbar style="padding: 8px; display: flex; justify-content: flex-start; gap: 4px; flex-wrap: wrap;">
+<mat-toolbar class="editor-toolbar">
   <!-- Text Formatting Group -->
   <ed-text-formatting-toolbar #textFormattingToolbar (commandExecuted)="onCommandExecuted()">
   </ed-text-formatting-toolbar>
@@ -46,8 +46,7 @@
 
 <!-- Editor Content Area -->
 <div #editor contenteditable="true" appTrackChangesTooltip [attr.data-placeholder]="placeholder" [style.height]="height"
-  class="wysiwyg-editor"
-  style="padding: 16px; border: 1px solid #ccc; border-radius: 4px; margin-top: 8px; outline: none; overflow-y: auto;">
+  class="wysiwyg-editor">
 </div>
 
 <!-- Track Changes Context Menu (right-click menu) -->

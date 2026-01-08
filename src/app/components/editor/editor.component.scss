@@ -1,16 +1,208 @@
+// ============================================
+// EDITOR COMPONENT STYLES - editor.component.scss
+// ============================================
+
+// ----------------------------------------
+// CSS Variables for Toolbar Customization
+// ----------------------------------------
+
+:host {
+  --toolbar-button-size: 36px;
+  --toolbar-icon-size: 20px;
+  --toolbar-gap: 2px;
+  --toolbar-padding: 6px 8px;
+  --divider-height: 24px;
+  --toolbar-min-height: 44px;
+}
+
+// ----------------------------------------
+// Toolbar Container
+// ----------------------------------------
+
+::ng-deep mat-toolbar.mat-toolbar {
+  min-height: var(--toolbar-min-height) !important;
+  padding: var(--toolbar-padding) !important;
+  gap: var(--toolbar-gap) !important;
+  flex-wrap: wrap;
+  height: auto !important;
+  transition: padding 0.2s ease, gap 0.2s ease;
+}
+
+// ----------------------------------------
+// Toolbar Icon Buttons
+// ----------------------------------------
+
+::ng-deep mat-toolbar {
+
+  .mat-icon-button,
+  button[mat-icon-button] {
+    width: var(--toolbar-button-size) !important;
+    height: var(--toolbar-button-size) !important;
+    line-height: var(--toolbar-button-size) !important;
+    padding: 0 !important;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+
+    &:hover:not(:disabled) {
+      background-color: rgba(0, 0, 0, 0.06);
+    }
+
+    &:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+
+    .mat-icon {
+      font-size: var(--toolbar-icon-size) !important;
+      width: var(--toolbar-icon-size) !important;
+      height: var(--toolbar-icon-size) !important;
+      line-height: var(--toolbar-icon-size) !important;
+    }
+  }
+
+  button.active {
+    background-color: rgba(0, 0, 0, 0.1) !important;
+  }
+}
+
+// ----------------------------------------
+// Vertical Dividers
+// ----------------------------------------
+
+::ng-deep mat-toolbar mat-divider[vertical] {
+  height: var(--divider-height) !important;
+  margin: 0 4px !important;
+}
+
+// ----------------------------------------
+// Toolbar Groups (Child Components)
+// ----------------------------------------
+
+::ng-deep mat-toolbar {
+
+  ed-text-formatting-toolbar,
+  ed-alignment-toolbar,
+  ed-list-toolbar,
+  ed-history-toolbar,
+  ed-table-toolbar,
+  ed-image-toolbar,
+  ed-line-height-toolbar,
+  ed-track-changes-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--toolbar-gap);
+    flex-shrink: 0;
+  }
+}
+
+// ----------------------------------------
+// Responsive Breakpoints
+// ----------------------------------------
+
+// Medium screens (tablets)
+@media (max-width: 1024px) {
+  :host {
+    --toolbar-button-size: 32px;
+    --toolbar-icon-size: 18px;
+    --toolbar-gap: 1px;
+    --toolbar-padding: 4px 6px;
+    --divider-height: 20px;
+    --toolbar-min-height: 40px;
+  }
+}
+
+// Small screens (large phones, small tablets)
+@media (max-width: 768px) {
+  :host {
+    --toolbar-button-size: 30px;
+    --toolbar-icon-size: 16px;
+    --toolbar-gap: 1px;
+    --toolbar-padding: 4px;
+    --divider-height: 18px;
+    --toolbar-min-height: 38px;
+  }
+
+  ::ng-deep mat-toolbar mat-divider[vertical]:nth-of-type(n + 4) {
+    display: none;
+  }
+}
+
+// Extra small screens (phones)
+@media (max-width: 480px) {
+  :host {
+    --toolbar-button-size: 28px;
+    --toolbar-icon-size: 16px;
+    --toolbar-gap: 0px;
+    --toolbar-padding: 2px 4px;
+    --divider-height: 16px;
+    --toolbar-min-height: 36px;
+  }
+
+  ::ng-deep mat-toolbar mat-divider[vertical] {
+    display: none !important;
+  }
+
+  ::ng-deep mat-toolbar {
+    ed-track-changes-toolbar .mat-icon-button:not(.active):not(:hover) {
+      opacity: 0.85;
+    }
+  }
+}
+
+// ----------------------------------------
+// Compact Mode (Optional Class Toggle)
+// ----------------------------------------
+
+:host.compact-toolbar {
+  --toolbar-button-size: 28px;
+  --toolbar-icon-size: 16px;
+  --toolbar-gap: 1px;
+  --toolbar-padding: 4px;
+  --divider-height: 18px;
+  --toolbar-min-height: 36px;
+}
+
+// ============================================
+// EDITOR CONTENT AREA
+// ============================================
+
+.wysiwyg-editor {
+  line-height: 1.5;
+  padding: 16px;
+  border-radius: 4px;
+  margin-top: 8px;
+  outline: none;
+  overflow-y: auto;
+  min-height: 100px;
+  background-color: #fff;
+
+  // Light border always visible
+  border: 1px solid #e0e0e0;
+  transition: border-color 0.2s ease;
+
+  // Slightly darker on focus
+  &:focus {
+    border-color: #bdbdbd;
+  }
+}
+
+// Placeholder styling
 .wysiwyg-editor:empty:before {
   content: attr(data-placeholder);
   color: #999;
   pointer-events: none;
 }
 
-.wysiwyg-editor {
-  line-height: 1.5;
+// Active button state
+:host ::ng-deep button.active {
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
-/* Line height utility classes */
+// ============================================
+// LINE HEIGHT UTILITIES
+// ============================================
+
 :host ::ng-deep .line-height-1-0 {
-  line-height: 1.0 !important;
+  line-height: 1 !important;
 }
 
 :host ::ng-deep .line-height-1-2 {
@@ -26,7 +218,7 @@
 }
 
 :host ::ng-deep .line-height-2-0 {
-  line-height: 2.0 !important;
+  line-height: 2 !important;
 }
 
 :host ::ng-deep .line-height-2-5 {
@@ -34,14 +226,13 @@
 }
 
 :host ::ng-deep .line-height-3-0 {
-  line-height: 3.0 !important;
+  line-height: 3 !important;
 }
 
-:host ::ng-deep button.active {
-  background-color: rgba(0, 0, 0, 0.1);
-}
+// ============================================
+// TABLE GRID OVERLAY
+// ============================================
 
-// Custom table grid overlay positioning
 .table-button-container {
   position: relative;
   display: inline-block;
@@ -60,6 +251,13 @@
   border: 1px solid #e0e0e0;
   padding: 16px;
   min-width: 280px;
+
+  @media (max-width: 480px) {
+    left: auto;
+    right: 0;
+    transform: none;
+    min-width: 240px;
+  }
 }
 
 .table-grid-container {
@@ -122,7 +320,10 @@
   margin-top: 8px;
 }
 
-// Line height grid overlay positioning
+// ============================================
+// LINE HEIGHT GRID OVERLAY
+// ============================================
+
 .line-height-button-container {
   position: relative;
   display: inline-block;
@@ -141,6 +342,12 @@
   border: 1px solid #e0e0e0;
   padding: 8px;
   min-width: 60px;
+
+  @media (max-width: 480px) {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
 }
 
 .line-height-grid-container {
@@ -174,71 +381,56 @@
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  font-weight: 500;
-  color: #333;
-  border-radius: 3px;
+  border-radius: 4px;
 
   &:hover {
-    background-color: #1976d2;
-    color: white;
-    border-color: #0d47a1;
+    background-color: #e3f2fd;
+    border-color: #1976d2;
   }
 
   &.selected {
     background-color: #1976d2;
     color: white;
     border-color: #0d47a1;
-    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.2);
   }
 }
 
-// Track Changes Styles
-:host ::ng-deep .tc-insert {
-  background-color: rgba(0, 255, 0, 0.2);
-  border-radius: 2px;
-  padding: 0 2px;
+// ============================================
+// EDITOR RESPONSIVE ADJUSTMENTS
+// ============================================
+
+@media (max-width: 768px) {
+  .wysiwyg-editor {
+    padding: 12px;
+    margin-top: 6px;
+  }
 }
 
-:host ::ng-deep .tc-delete {
-  text-decoration: line-through;
-  text-decoration-color: #d32f2f;
-  color: #666;
-  background-color: rgba(255, 0, 0, 0.1);
-  border-radius: 2px;
-  padding: 0 2px;
+@media (max-width: 480px) {
+  .wysiwyg-editor {
+    padding: 10px;
+    margin-top: 4px;
+    border-radius: 2px;
+  }
 }
 
-// Change highlighting on hover
-:host ::ng-deep .tc-insert:hover {
-  background-color: rgba(0, 255, 0, 0.3);
-  box-shadow: 0 0 0 1px rgba(0, 255, 0, 0.4);
+// ============================================
+// OPTIONAL STATES
+// ============================================
+
+// Error state
+.wysiwyg-editor.has-error {
+  border-color: #ef9a9a !important;
+
+  &:focus {
+    border-color: #e57373 !important;
+  }
 }
 
-:host ::ng-deep .tc-delete:hover {
-  background-color: rgba(255, 0, 0, 0.2);
-  box-shadow: 0 0 0 1px rgba(255, 0, 0, 0.4);
-}
-
-// Change acceptance/rejection indicators
-:host ::ng-deep .change-accepted {
-  background-color: rgba(76, 175, 80, 0.1);
-  border: 1px solid #4caf50;
-}
-
-:host ::ng-deep .change-rejected {
-  background-color: rgba(244, 67, 54, 0.1);
-  border: 1px solid #f44336;
-  opacity: 0.5;
-}
-
-// Table cell selection
-::ng-deep .table-cell-selected {
-  background-color: #bbdefb !important;
-  outline: 2px solid #1976d2;
-  outline-offset: -2px;
-}
-
-::ng-deep .table-cell-selected::selection,
-::ng-deep .table-cell-selected *::selection {
-  background: transparent;
+// Disabled state
+.wysiwyg-editor[contenteditable='false'],
+.wysiwyg-editor.disabled {
+  background-color: #fafafa;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
