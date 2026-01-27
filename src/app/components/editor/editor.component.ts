@@ -61,6 +61,8 @@ import {
   EnterMode,
   DEFAULT_EDITOR_CONFIG
 } from 'src/app/entities/editor-config';
+import { ThemePickerComponent } from '../theme-picker/theme-picker.component';
+import { EditorThemeService } from 'src/app/services/editor-theme.service';
 
 /** Debounce time for content change emissions (ms) */
 const CONTENT_DEBOUNCE_MS = 300;
@@ -82,7 +84,8 @@ const CONTENT_DEBOUNCE_MS = 300;
     TrackChangesToolbarComponent,
     TrackChangesContextMenuComponent,
     TrackChangesTooltipDirective,
-    TableContextMenuComponent
+    TableContextMenuComponent,
+    ThemePickerComponent
   ],
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss'],
@@ -145,6 +148,12 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     pendingCount: 0
   };
 
+  /** Word count for footer display */
+  wordCount = 0;
+
+  /** Character count for footer display */
+  charCount = 0;
+
   // ========================================================================
   // PRIVATE STATE
   // ========================================================================
@@ -157,7 +166,7 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   // ========================================================================
 
   constructor(
-    private commandExecutor: CommandExecutorService,
+    private themeService: EditorThemeService,
     private selectionManager: SelectionManagerService,
     private sanitizer: ContentSanitizerService,
     private eventsService: EditorEventsService,
@@ -193,6 +202,9 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Initial toolbar state update
     setTimeout(() => this.updateToolbarStates(), 0);
+
+    // Initial word/char count
+    this.updateWordCount();
   }
 
   ngOnDestroy(): void {
@@ -223,6 +235,14 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
       this.editor.nativeElement,
       this.outputMode
     );
+  }
+
+  setEditorTheme(themeName: string): void {
+    this.themeService.setTheme(themeName);
+  }
+
+  setEditorPrimaryColor(color: string): void {
+    this.themeService.setPrimaryColor(color);
   }
 
   // ========================================================================
@@ -497,6 +517,35 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
+  /**
+ * Updates word and character counts from editor content.
+ * Called on content changes.
+ */
+  private updateWordCount(): void {
+    if (!this.editor?.nativeElement) {
+      this.wordCount = 0;
+      this.charCount = 0;
+      return;
+    }
+
+    // Get text content (strips HTML tags)
+    const text = this.editor.nativeElement.innerText || '';
+
+    // Character count (excluding leading/trailing whitespace)
+    const trimmedText = text.trim();
+    this.charCount = trimmedText.length;
+
+    // Word count - split by whitespace, filter empty strings
+    if (trimmedText.length === 0) {
+      this.wordCount = 0;
+    } else {
+      this.wordCount = trimmedText
+        .split(/\s+/)
+        .filter(word => word.length > 0)
+        .length;
+    }
+  }
+
   // ========================================================================
   // PRIVATE - HELPERS
   // ========================================================================
@@ -507,6 +556,7 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.content = this.getContent();
     this.contentChange$.next(this.content);
+    this.updateWordCount();
   }
 
   private updateToolbarStates(): void {
@@ -519,6 +569,7 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   private onAfterUndoRedo(): void {
     this.emitContentChange();
     this.updateToolbarStates();
+    this.updateWordCount();
   }
 
   private executeTrackChangesAction(action: () => any): void {

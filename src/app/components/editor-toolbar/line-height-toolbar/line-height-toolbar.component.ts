@@ -1,3 +1,11 @@
+/**
+ * Line Height Toolbar Component
+ * Path: src/app/components/editor-toolbar/line-height-toolbar/line-height-toolbar.component.ts
+ * 
+ * Provides line height selection via hover-triggered dropdown overlay.
+ * Uses CSS custom properties for theme-aware styling.
+ */
+
 import { Component, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,7 +34,6 @@ import { SelectionManagerService } from 'src/app/services/selection-manager.serv
         <mat-icon>format_line_spacing</mat-icon>
       </button>
 
-      <!-- Custom line height grid overlay -->
       <div class="line-height-grid-overlay" 
            *ngIf="showLineHeightGridFlag" 
            (mouseenter)="keepLineHeightGridVisible()" 
@@ -60,10 +67,10 @@ import { SelectionManagerService } from 'src/app/services/selection-manager.serv
       transform: translateX(-50%);
       z-index: 1000;
       margin-top: 8px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      border: 1px solid #e0e0e0;
+      background: var(--ed-button-bg, #ffffff);
+      border-radius: var(--ed-radius-menu, 8px);
+      box-shadow: var(--ed-shadow-elevated, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+      border: 1px solid color-mix(in srgb, var(--ed-on-surface, #000) 10%, transparent);
       padding: 8px;
       min-width: 60px;
     }
@@ -78,7 +85,8 @@ import { SelectionManagerService } from 'src/app/services/selection-manager.serv
     .grid-title {
       font-size: 12px;
       font-weight: 500;
-      color: #666;
+      color: var(--ed-on-surface, #666);
+      opacity: 0.7;
       margin: 0;
     }
 
@@ -91,8 +99,8 @@ import { SelectionManagerService } from 'src/app/services/selection-manager.serv
     .height-option {
       width: 40px;
       height: 24px;
-      background-color: #fafafa;
-      border: 1px solid #eee;
+      background-color: var(--ed-surface, #fafafa);
+      border: 1px solid color-mix(in srgb, var(--ed-on-surface, #000) 12%, transparent);
       cursor: pointer;
       transition: all 0.15s ease;
       display: flex;
@@ -100,20 +108,19 @@ import { SelectionManagerService } from 'src/app/services/selection-manager.serv
       justify-content: center;
       font-size: 12px;
       font-weight: 500;
-      color: #333;
+      color: var(--ed-on-surface, #333);
       border-radius: 3px;
 
       &:hover {
-        background-color: #1976d2;
-        color: white;
-        border-color: #0d47a1;
+        background-color: var(--ed-button-hover, rgba(0, 0, 0, 0.04));
+        color: var(--ed-primary, #1976d2);
+        border-color: var(--ed-primary, #1976d2);
       }
 
       &.selected {
-        background-color: #1976d2;
-        color: white;
-        border-color: #0d47a1;
-        box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.2);
+        background-color: var(--ed-primary, #1976d2);
+        color: var(--ed-on-primary, #ffffff);
+        border-color: var(--ed-primary, #1976d2);
       }
     }
   `]
@@ -139,7 +146,6 @@ export class LineHeightToolbarComponent {
 
     hideLineHeightGrid(): void {
         this.clearTimeout();
-
         this.lineHeightGridTimeout = setTimeout(() => {
             this.showLineHeightGridFlag = false;
             this.lineHeightGridTimeout = undefined;
@@ -166,6 +172,13 @@ export class LineHeightToolbarComponent {
     updateState(): void {
         const currentValue = this.getCurrentLineHeightValue();
         this.lineHeight.setValue(currentValue || '1.5', { emitEvent: false });
+    }
+
+    private clearTimeout(): void {
+        if (this.lineHeightGridTimeout) {
+            clearTimeout(this.lineHeightGridTimeout);
+            this.lineHeightGridTimeout = undefined;
+        }
     }
 
     private applyLineHeight(height: string): void {
@@ -231,7 +244,6 @@ export class LineHeightToolbarComponent {
 
         this.lineHeight.setValue(height, { emitEvent: false });
         this.commandExecuted.emit();
-
         this.selectionManager.restoreSelection(range);
         editorElement?.focus();
     }
@@ -255,7 +267,6 @@ export class LineHeightToolbarComponent {
         elements.forEach(element => {
             if (element.style.lineHeight) {
                 element.style.lineHeight = '';
-
                 if (!element.getAttribute('style')?.trim()) {
                     element.removeAttribute('style');
                 }
@@ -264,7 +275,6 @@ export class LineHeightToolbarComponent {
 
         this.lineHeight.setValue('1.5', { emitEvent: false });
         this.commandExecuted.emit();
-
         this.selectionManager.restoreSelection(range);
         editorElement?.focus();
     }
@@ -280,19 +290,16 @@ export class LineHeightToolbarComponent {
         if (node === editorElement) {
             const selector = this.BLOCK_ELEMENTS.join(',');
             const allBlocks = editorElement!.querySelectorAll(selector);
-
             const selectedBlocks: HTMLElement[] = [];
+
             allBlocks.forEach((block: Element) => {
                 const blockRange = document.createRange();
                 try {
                     blockRange.selectNodeContents(block);
-
                     if (this.rangesIntersect(range, blockRange)) {
                         selectedBlocks.push(block as HTMLElement);
                     }
-                } catch (error) {
-                    // Range intersection check failed
-                }
+                } catch (error) { }
             });
 
             return selectedBlocks;
@@ -367,30 +374,17 @@ export class LineHeightToolbarComponent {
         }
 
         if (lineHeight.endsWith('px')) {
-            try {
-                const computedStyle = window.getComputedStyle(element);
-                const fontSize = parseFloat(computedStyle.fontSize);
-                const lineHeightPx = parseFloat(lineHeight);
-
-                if (fontSize > 0 && !isNaN(lineHeightPx)) {
-                    const relative = (lineHeightPx / fontSize).toFixed(1);
-                    const match = this.lineHeights.find(h =>
-                        Math.abs(parseFloat(h) - parseFloat(relative)) < 0.1
-                    );
-                    return match || relative;
-                }
-            } catch (error) {
-                // Normalization failed
+            const pxValue = parseFloat(lineHeight);
+            const fontSize = parseFloat(window.getComputedStyle(element).fontSize);
+            if (fontSize > 0) {
+                return (pxValue / fontSize).toFixed(1);
             }
         }
 
-        return lineHeight;
-    }
-
-    private clearTimeout(): void {
-        if (this.lineHeightGridTimeout !== undefined) {
-            clearTimeout(this.lineHeightGridTimeout);
-            this.lineHeightGridTimeout = undefined;
+        if (lineHeight.endsWith('%')) {
+            return (parseFloat(lineHeight) / 100).toFixed(1);
         }
+
+        return lineHeight;
     }
 }
